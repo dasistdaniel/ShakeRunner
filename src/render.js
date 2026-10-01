@@ -11,6 +11,8 @@ const WHEEL = [
   '..wwwww..', '.w.....w.', 'w.......w', 'w.......w', 'w...w...w', 'w.......w', 'w.......w', '.w.....w.', '..wwwww..',
 ];
 const ZIVI_PAL = { b: '#39ff88', s: '#ffffff', k: '#000000', j: '#39ff88', p: '#39ff88', w: '#ffffff' };
+const PILL = ['.wwwwwwww.', 'wBBBBLLLLw', 'wBBBBLLLLw', 'wBBBBLLLLw', 'wBBBBLLLLw', '.wwwwwwww.'];
+const PILL_PAL = { w: '#ffffff', B: '#1f4fff', L: '#8fb8ff' };
 const FRAMES = {
   runA: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', 'jj.jj.jj', '..pppp..', '.pp..pp.', 'pp....pp', 'ww....ww'],
   runB: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', '.j.jj.j.', '..pppp..', '..pppp..', '..pp.pp.', '..ww.ww.'],
@@ -78,8 +80,28 @@ export function createRenderer(canvas) {
     runA: makeSprite(FRAMES.runA, CALM_PAL), runB: makeSprite(FRAMES.runB, CALM_PAL), jump: makeSprite(FRAMES.jump, CALM_PAL),
   };
 
-  // Figur je nach Upgrade-Stufe: 0 Rentner, 1 +Rollator, 2 neue Hüfte, 3 Rollstuhl, 4 Rollstuhl + Zivi
-  function drawCharacter(player, time) {
+  // Rollstuhl bei x; frame = Sitzender (oder null = leer), zivi = Schieber-Sprite (oder null)
+  function drawChair(x, by, frame, zivi) {
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(x - 3, by - 14, 4, 1);                  // Schiebegriff
+    ctx.fillRect(x - 1, by - 14, 2, 10);                 // Rückenlehne
+    if (frame) ctx.drawImage(frame, 0, 0, 8, 8, x, by - 14, 8, 8); // Oberkörper
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(x - 1, by - 4, 9, 1);                   // Sitz
+    if (frame) {
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillRect(x + 3, by - 6, 7, 2);                 // Oberschenkel
+      ctx.fillRect(x + 8, by - 4, 2, 3);                 // Unterschenkel
+      ctx.fillStyle = '#ffe14d';
+      ctx.fillRect(x + 8, by - 1, 4, 1);                 // Schuhe
+    }
+    ctx.drawImage(wheel, x - 1, by - 9);
+    if (zivi) ctx.drawImage(zivi, x - 11, by - PH);
+  }
+
+  // Figur je nach Stufe: 0 Rentner, 1 +Rollator, 2 neue Hüfte, 3 Rollstuhl, 4 Rollstuhl + Zivi,
+  // 5 blaue Pille: steht auf, rennt selbst, Rollstuhl + Zivi bleiben zurück
+  function drawCharacter(player, time, scroll) {
     const y = Math.round(player.y);
     const by = GROUND - y;
     const air = player.y !== 0;
@@ -87,20 +109,12 @@ export function createRenderer(canvas) {
     const frame = pick(calmSprites);
     const st = player.stage;
 
-    if (st >= 3) {
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(PX - 3, by - 14, 4, 1);               // Schiebegriff
-      ctx.fillRect(PX - 1, by - 14, 2, 10);              // Rückenlehne
-      ctx.drawImage(frame, 0, 0, 8, 8, PX, by - 14, 8, 8); // Oberkörper
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(PX - 1, by - 4, 9, 1);                // Sitz
-      ctx.fillStyle = '#00e5ff';
-      ctx.fillRect(PX + 3, by - 6, 7, 2);                // Oberschenkel
-      ctx.fillRect(PX + 8, by - 4, 2, 3);                // Unterschenkel
-      ctx.fillStyle = '#ffe14d';
-      ctx.fillRect(PX + 8, by - 1, 4, 1);                // Schuhe
-      ctx.drawImage(wheel, PX - 1, by - 9);
-      if (st >= 4) ctx.drawImage(pick(ziviSprites), PX - 11, by - PH);
+    if (st === 5) {
+      const cx = Math.round(player.chairX - Math.floor(scroll));
+      if (cx > -26) drawChair(cx, GROUND, null, ziviSprites.runB);
+    }
+    if (st === 3 || st === 4) {
+      drawChair(PX, by, frame, st === 4 ? pick(ziviSprites) : null);
       return;
     }
 
@@ -125,6 +139,10 @@ export function createRenderer(canvas) {
     for (const o of world.obs) {
       const x = Math.round(o.x - d);
       if (x > W || x + o.w < 0) continue;
+      if (o.type === 'pill') {
+        ctx.drawImage(pill, x, GROUND - 37 + Math.round(Math.sin(time * 5) * 2));
+        continue;
+      }
       if (o.type === 'pit') {
         ctx.fillStyle = '#000';
         ctx.fillRect(x, GROUND, o.w, H - GROUND);
@@ -138,7 +156,7 @@ export function createRenderer(canvas) {
         ctx.fillRect(x, GROUND - o.h, o.w, o.h);
       }
     }
-    if (state !== 'DEAD' || player.dead === 'fall') drawCharacter(player, time);
+    if (state !== 'DEAD' || player.dead === 'fall') drawCharacter(player, time, scroll);
     if (state === 'PLAY') {
       ctx.fillStyle = '#fff';
       ctx.fillRect(6, 24, W - 12, 8);
@@ -151,6 +169,7 @@ export function createRenderer(canvas) {
 
   const rollator = makeSprite(ROLLATOR, ROLLATOR_PAL);
   const wheel = makeSprite(WHEEL, { w: '#ffffff' });
+  const pill = makeSprite(PILL, PILL_PAL);
   const ziviSprites = {
     runA: makeSprite(FRAMES.runA, ZIVI_PAL), runB: makeSprite(FRAMES.runB, ZIVI_PAL), jump: makeSprite(FRAMES.jump, ZIVI_PAL),
   };

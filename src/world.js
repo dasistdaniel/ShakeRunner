@@ -10,11 +10,21 @@ export class World {
     this.obs = [];
     this.nextX = 300;
     this.passed = 0; // erfolgreich passierte Hindernisse
+    this.pillOut = false;    // Pille liegt gerade auf der Strecke
+    this.pillDue = false;    // Pille soll erscheinen
+    this.pillNew = false;    // Flag: Pille wurde eben gespawnt
+    this.pillCaught = false; // Flag: Pille wurde gefangen
   }
 
   spawn(speed) {
     const x = this.nextX;
     if (this.calm) { // Rentner-Modus: nur niedrige Kisten, keine Abgründe, viel Platz dazwischen
+      if (this.pillDue && !this.pillOut) { // blaue Pille schwebt hoch: nur im Sprung fangbar
+        this.obs.push({ type: 'pill', x, w: 10, h: 0 });
+        this.pillOut = this.pillNew = true;
+        this.nextX = x + 10 + Math.max(150, Math.max(speed, 50) * 2.2 + 60);
+        return;
+      }
       const o = { type: 'box', x, w: Math.random() < 0.5 ? 10 : 14, h: Math.random() < 0.5 ? 10 : 12 };
       this.obs.push(o);
       this.nextX = x + o.w + Math.max(150, Math.max(speed, 50) * (1.8 + Math.random() * 0.8) + 60);
@@ -41,13 +51,19 @@ export class World {
   // Gibt 'crash' bei Kollision zurück, setzt player.pit.
   update(player) {
     const d = player.dist;
+    this.pillDue = this.calm && player.stage === 4 && this.passed >= 50;
     while (this.nextX < d + 260) this.spawn(player.speed);
-    this.obs = this.obs.filter((o) => o.x + o.w > d - 30);
+    this.obs = this.obs.filter((o) => o.x + o.w > d - 30 && !o.gone);
 
     const l = d + PX + 1;
     const r = d + PX + 7;
     player.pit = false;
     for (const o of this.obs) {
+      if (o.type === 'pill') {
+        if (r > o.x && l < o.x + o.w && player.y + 12 > 28 && player.y < 40) { o.gone = true; this.pillCaught = true; }
+        else if (!o.counted && o.x + o.w < l) { o.counted = true; this.pillOut = false; } // verpasst: kommt wieder
+        continue;
+      }
       if (!o.counted && o.x + o.w < l) { o.counted = true; this.passed++; }
       if (o.type === 'pit') {
         if (l > o.x && r < o.x + o.w) player.pit = true;

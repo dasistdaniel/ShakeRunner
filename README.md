@@ -12,7 +12,7 @@ Tempo = Energie: jedes Schütteln gibt Schub, ohne Schütteln verlierst du Tempo
 Ohne Sensor (oder iOS-Erlaubnis verweigert): Tippen links/rechts = Schub, Wischen hoch = Sprung.
 
 ## Rentner-Modus
-Menü-Knopf *RENTNER-MODUS* oder Link mit `?rentner` (z. B. `https://dasistdaniel.github.io/ShakeRunner/?rentner`): ca. halbes Tempo, nur niedrige Kisten, keine Abgründe, sanftes Schütteln genügt, Walzer statt Techno, schwarz/gelb/weiß ohne Effekte. Upgrades nach geschafften Hürden: 3 Rollator, 10 neue Hüfte (Rollator weg), 20 Rollstuhl, 25 Zivi schiebt (Tempo fällt nie unter einen Mindestwert). Je Stufe sinkt die Energie langsamer. Eigener Highscore.
+Menü-Knopf *RENTNER-MODUS* oder Link mit `?rentner` (z. B. `https://dasistdaniel.github.io/ShakeRunner/?rentner`): ca. halbes Tempo, nur niedrige Kisten, keine Abgründe, sanftes Schütteln genügt, Walzer statt Techno, schwarz/gelb/weiß ohne Effekte. Upgrades nach geschafften Hürden: 3 Rollator, 10 neue Hüfte (Rollator weg), 20 Rollstuhl, 25 Zivi schiebt (Tempo fällt nie unter einen Mindestwert), nach 50 erscheint eine blaue Pille: im Sprung fangen, dann steht man auf, rennt selbst (schneller) und lässt Kevin im Rollstuhl stehen. Je Stufe sinkt die Energie langsamer. Eigener Highscore.
 
 ## Starten
 ```bash

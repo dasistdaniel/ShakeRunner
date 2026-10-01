@@ -36,11 +36,11 @@ const modeBtn = $('modeBtn');
 const toast = $('toast');
 let toastTimer = null;
 
-function showToast(text) {
+function showToast(text, ms = 2600) {
   toast.innerHTML = text;
   toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, ms);
 }
 
 const player = new Player();
@@ -150,7 +150,7 @@ function gameOver(reason) {
   const isBest = score > best;
   if (isBest) { best = score; saveBest(best, modeName()); }
   player.reasonText = REASONS[modeName()][reason];
-  if (player.stage >= 4) player.reasonText += `<br><br>${ZIVI_NAME}:<br>"WAR NICHT MEINE SCHULD!"`;
+  if (player.stage === 4) player.reasonText += `<br><br>${ZIVI_NAME}:<br>"WAR NICHT MEINE SCHULD!"`;
   player.finalScore = score;
   player.isBest = isBest;
 }
@@ -187,6 +187,14 @@ function update(dt) {
   if (state === 'PLAY') {
     player.update(dt);
     const hit = world.update(player);
+    if (world.pillNew) { world.pillNew = false; showToast('BLAUE PILLE!<br>SPRING UND FANG SIE!', 3000); }
+    if (world.pillCaught) { // Stufe 5: Rollstuhl verlassen, Kevin abhängen
+      world.pillCaught = false;
+      player.stage = 5;
+      player.chairX = player.dist + PX - 1;
+      audio.upgradeSfx(5);
+      showToast(`MACHS GUT ${ZIVI_NAME},<br>DU LOOSER!`, 5000);
+    }
     if (hit) player.dead = player.dead || hit;
     else if (cueOn && world.cue(player)) audio.cueSfx();
     if (rentner && player.stage < STAGE_AT.length && world.passed >= STAGE_AT[player.stage]) {

@@ -9,7 +9,8 @@ export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
 
 // Rentner-Upgrades: nach so vielen geschafften Hürden wird die nächste Stufe freigeschaltet
 export const STAGE_AT = [3, 10, 20, 25];
-const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4]; // Energie-Abbau je Stufe
+const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4, 0.4]; // Energie-Abbau je Stufe
+const STAGE_SPEED = [1, 1, 1, 1, 1, 1.6];            // Stufe 5 (blaue Pille): rennt selbst, deutlich schneller
 
 // speedK: px/s je Energiepunkt, d0/d1: Energie-Abbau (konstant + proportional), gain: Schub je Schütteln,
 // exhaust: Sekunden ohne Energie bis "außer Atem", e0: Start-Energie
@@ -24,7 +25,8 @@ export class Player {
   setProfile(name) { this.prof = PROFILES[name] || PROFILES.normal; }
 
   reset() {
-    this.stage = 0; // Rentner-Upgrades: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi
+    this.chairX = 0;   // Welt-X, wo Rollstuhl + Zivi stehen bleiben (Stufe 5)
+    this.stage = 0; // Rentner-Upgrades: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi, 5 blaue Pille
     this.e = this.prof.e0;          // Tempo-Energie 0..100
     this.y = 0;           // Höhe über Boden (negativ = im Loch)
     this.vy = 0;
@@ -37,7 +39,7 @@ export class Player {
     this.jumped = false;
   }
 
-  get speed() { return this.e * this.prof.speedK; }
+  get speed() { return this.e * this.prof.speedK * STAGE_SPEED[this.stage]; }
 
   push(strength) { this.e = Math.min(100, this.e + this.prof.gain * strength); }
 
@@ -51,7 +53,7 @@ export class Player {
 
   update(dt) {
     this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * STAGE_DECAY[this.stage] * dt);
-    if (this.stage >= 4) this.e = Math.max(this.e, 25); // Zivi schiebt: nie ganz stehen bleiben
+    if (this.stage === 4) this.e = Math.max(this.e, 25); // Zivi schiebt: nie ganz stehen bleiben
     this.dist += this.speed * dt;
     this.anim += this.speed * dt * 0.1;
 
