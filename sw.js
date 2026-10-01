@@ -1,5 +1,5 @@
 // Network-first, Cache als Offline-Fallback (kein veralteter Stand beim Entwickeln).
-const CACHE = 'shakerunner-v2';
+const CACHE = 'shakerunner-v3';
 const FILES = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
   'src/main.js', 'src/input.js', 'src/player.js', 'src/world.js', 'src/audio.js', 'src/render.js', 'src/storage.js'];
 
@@ -14,7 +14,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(e.request, { cache: 'no-cache' }).then((res) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(e.request, copy));
       return res;
