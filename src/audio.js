@@ -276,6 +276,30 @@ export class GameAudio {
     [72, 76, 79, 84].forEach((m, i) => this.tone(t + i * 0.09, mtof(m + (level - 1) * 2), 'triangle', 0.25, 0.35));
   }
 
+  // Kevins Zuruf: wackelnder, fallender "Wääh"-Ton
+  shoutSfx() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(330, t);
+    o.frequency.linearRampToValueAtTime(250, t + 0.15);
+    o.frequency.linearRampToValueAtTime(300, t + 0.3);
+    o.frequency.linearRampToValueAtTime(170, t + 0.55);
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 1200;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    o.connect(f);
+    f.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + 0.62);
+  }
+
   crashSfx() {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;

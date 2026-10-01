@@ -135,3 +135,19 @@ button.alt {
   pointer-events: none;
 }
 #toast[hidden] { display: none; }
+
+/* Kevins Zuruf */
+#shout {
+  position: absolute;
+  top: 42%;
+  left: 6%;
+  max-width: 82%;
+  padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  font-size: calc(var(--u) * 5);
+  line-height: 1.7;
+  color: #000;
+  background: #fff;
+  border: calc(var(--u) * 1.5) solid #39ff88;
+  pointer-events: none;
+}
+#shout[hidden] { display: none; }

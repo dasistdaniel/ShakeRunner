@@ -19,6 +19,13 @@ const REASONS = {
   },
 };
 const ZIVI_NAME = 'KEVIN';
+const SHOUTS = [
+  'WARTE! WER ZAHLT MEIN<br>TAXI ZURÜCK?!',
+  'DAS MELDE ICH<br>DEM CHEF!',
+  'MEIN RÜCKEN!<br>UND DER ROLLSTUHL?!',
+  'ICH KÜNDIGE!<br>GANZ BESTIMMT!',
+  'ICH WAR DOCH<br>NETT ZU DIR!',
+];
 const UPGRADES = ['UPGRADE: ROLLATOR!', 'NEUE HÜFTE! ROLLATOR WEG!', 'UPGRADE: ROLLSTUHL!', `ZIVI ${ZIVI_NAME} SCHIEBT!<br>GUTE FAHRT!`];
 const HINTS = {
   normal: 'HANDY SCHÜTTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN',
@@ -34,7 +41,21 @@ const msg = $('msg');
 const startBtn = $('startBtn');
 const modeBtn = $('modeBtn');
 const toast = $('toast');
+const shout = $('shout');
+let shoutTimers = [];
 let toastTimer = null;
+
+// Kevin ruft dem Läufer hinterher (kurz nach dem Banner)
+function showShout() {
+  shoutTimers.forEach(clearTimeout);
+  shoutTimers = [setTimeout(() => {
+    if (state !== 'PLAY') return;
+    shout.innerHTML = `<b>${ZIVI_NAME}:</b><br>${SHOUTS[Math.floor(Math.random() * SHOUTS.length)]}`;
+    shout.hidden = false;
+    audio.shoutSfx();
+    shoutTimers.push(setTimeout(() => { shout.hidden = true; }, 3200));
+  }, 1600)];
+}
 
 function showToast(text, ms = 2600) {
   toast.innerHTML = text;
@@ -126,6 +147,8 @@ async function start() {
   world.reset();
   overlay.hidden = true;
   toast.hidden = true;
+  shout.hidden = true;
+  shoutTimers.forEach(clearTimeout);
   hud.hidden = false;
   $('best').textContent = `HI ${best}`;
   state = 'PLAY';
@@ -133,6 +156,8 @@ async function start() {
 }
 
 function gameOver(reason) {
+  shout.hidden = true;
+  shoutTimers.forEach(clearTimeout);
   state = 'DEAD';
   deadT = 0;
   shake = rentner ? 0 : 0.5;
@@ -194,6 +219,7 @@ function update(dt) {
       player.chairX = player.dist + PX - 1;
       audio.upgradeSfx(5);
       showToast(`MACHS GUT ${ZIVI_NAME},<br>DU LOOSER!`, 5000);
+      showShout();
     }
     if (hit) player.dead = player.dead || hit;
     else if (cueOn && world.cue(player)) audio.cueSfx();
