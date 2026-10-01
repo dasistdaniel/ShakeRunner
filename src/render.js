@@ -4,19 +4,20 @@ export const W = 180;
 export const H = 320;
 
 const PAL = { b: '#ff2e88', s: '#ffcc99', k: '#1a0b33', j: '#00e5ff', p: '#5b3cff', w: '#ffffff' };
+const CALM_PAL = { b: '#ffe14d', s: '#ffffff', k: '#000000', j: '#ffffff', p: '#00e5ff', w: '#ffe14d' };
 const FRAMES = {
   runA: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', 'jj.jj.jj', '..pppp..', '.pp..pp.', 'pp....pp', 'ww....ww'],
   runB: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', '.j.jj.j.', '..pppp..', '..pppp..', '..pp.pp.', '..ww.ww.'],
   jump: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', 'jjjjjjjj', 'j.jjjj.j', '..jjjj..', '..pppp..', '.pp..pp.', '.pp..pp.', '.ww..ww.'],
 };
 
-function makeSprite(rows) {
+function makeSprite(rows, pal = PAL) {
   const c = document.createElement('canvas');
   c.width = rows[0].length;
   c.height = rows.length;
   const g = c.getContext('2d');
   rows.forEach((row, y) => [...row].forEach((ch, x) => {
-    if (PAL[ch]) { g.fillStyle = PAL[ch]; g.fillRect(x, y, 1, 1); }
+    if (pal[ch]) { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); }
   }));
   return c;
 }
@@ -67,6 +68,50 @@ export function createRenderer(canvas) {
   const sr = rng(99);
   const stars = Array.from({ length: 30 }, () => ({ x: Math.floor(sr() * W), y: Math.floor(sr() * 120), ph: sr() * 6 }));
 
+  const calmSprites = {
+    runA: makeSprite(FRAMES.runA, CALM_PAL), runB: makeSprite(FRAMES.runB, CALM_PAL), jump: makeSprite(FRAMES.jump, CALM_PAL),
+  };
+
+  // Rentner-Modus: schwarz/weiß/gelb, keine Effekte, nur das Nötigste
+  function drawCalm({ player, world, scroll, state }) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#262626';
+    ctx.fillRect(0, GROUND, W, H - GROUND);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, GROUND, W, 2);
+    const d = Math.floor(scroll);
+    for (let x = -(d % 24); x < W; x += 24) ctx.fillRect(x, GROUND + 12, 12, 2); // Tempo-Markierungen
+    for (const o of world.obs) {
+      const x = Math.round(o.x - d);
+      if (x > W || x + o.w < 0) continue;
+      if (o.type === 'pit') {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x, GROUND, o.w, H - GROUND);
+        ctx.fillStyle = '#ffe14d';
+        ctx.fillRect(x, GROUND, 2, H - GROUND);
+        ctx.fillRect(x + o.w - 2, GROUND, 2, H - GROUND);
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x - 2, GROUND - o.h - 2, o.w + 4, o.h + 2);
+        ctx.fillStyle = '#ffe14d';
+        ctx.fillRect(x, GROUND - o.h, o.w, o.h);
+      }
+    }
+    if (state !== 'DEAD' || player.dead === 'fall') {
+      const frame = player.y !== 0 ? calmSprites.jump : (Math.floor(player.anim) % 2 ? calmSprites.runA : calmSprites.runB);
+      ctx.drawImage(frame, PX, Math.round(GROUND - PH - player.y));
+    }
+    if (state === 'PLAY') {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(6, 24, W - 12, 8);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(8, 26, W - 16, 4);
+      ctx.fillStyle = '#ffe14d';
+      ctx.fillRect(8, 26, Math.round((W - 16) * player.e / 100), 4);
+    }
+  }
+
   let parts = [];
   let dustT = 0;
 
@@ -91,6 +136,7 @@ export function createRenderer(canvas) {
   }
 
   function draw(g) {
+    if (g.calm) { drawCalm(g); return; }
     const { player, world, scroll, pulse, time, shake, state } = g;
     ctx.save();
     if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * shake * 12), Math.round((Math.random() - 0.5) * shake * 12));

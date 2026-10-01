@@ -3,13 +3,24 @@ import { Player, PX, GROUND } from './player.js';
 import { World } from './world.js';
 import { GameAudio } from './audio.js';
 import { createRenderer } from './render.js';
-import { loadBest, saveBest } from './storage.js';
+import { loadBest, saveBest, loadMode, saveMode } from './storage.js';
 
 const STEP = 1 / 60;
 const REASONS = {
-  crash: 'GEGEN DIE WAND!',
-  fall: 'IM ABGRUND VERSUNKEN!',
-  breath: 'AUSSER ATEM! SCHÜTTEL WEITER!',
+  normal: {
+    crash: 'GEGEN DIE WAND!',
+    fall: 'IM ABGRUND VERSUNKEN!',
+    breath: 'AUSSER ATEM! SCHÜTTEL WEITER!',
+  },
+  rentner: {
+    crash: 'AUA! MEIN RÜCKEN!',
+    fall: 'LOCH IM WEG!',
+    breath: 'NICKERCHEN GEMACHT?',
+  },
+};
+const HINTS = {
+  normal: 'HANDY SCHÜTTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN',
+  rentner: 'GANZ GEMÜTLICH SCHÜTTELN<br>SANFT NACH OBEN = SPRINGEN',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +30,7 @@ const overlay = $('overlay');
 const hud = $('hud');
 const msg = $('msg');
 const startBtn = $('startBtn');
+const modeBtn = $('modeBtn');
 
 const player = new Player();
 const world = new World();
@@ -27,7 +39,8 @@ const input = createInput(canvas);
 const renderer = createRenderer(canvas);
 
 let state = 'MENU'; // MENU | PLAY | DEAD | OVER
-let best = loadBest();
+let rentner = location.search.includes('rentner') || loadMode() === 'rentner'; // ?rentner = Link zum Weiterschicken
+let best = 0;
 let deadT = 0;
 let shake = 0;
 let idleScroll = 0;
@@ -58,7 +71,36 @@ function showOverlay(text, btn) {
   hud.hidden = true;
 }
 
-showOverlay(best ? `BEST ${best} M` : '', 'START');
+const modeName = () => (rentner ? 'rentner' : 'normal');
+
+function applyMode() {
+  const m = modeName();
+  player.setProfile(m);
+  world.calm = rentner;
+  audio.setMode(rentner ? 'waltz' : 'techno');
+  input.setEasy(rentner);
+  wrap.classList.toggle('calm', rentner);
+  $('title').innerHTML = rentner ? 'RENTNER<br>RUNNER' : 'SHAKE<br>RUNNER';
+  modeBtn.textContent = rentner ? 'RENTNER-MODUS: AN' : 'RENTNER-MODUS: AUS';
+  document.querySelector('.touch-hint').innerHTML = HINTS[m];
+  document.title = rentner ? 'RentnerRunner' : 'ShakeRunner';
+  best = loadBest(m);
+}
+
+const bestText = () => (best ? `BEST ${best} M` : '');
+
+applyMode();
+showOverlay(bestText(), 'START');
+
+modeBtn.addEventListener('click', () => {
+  if (state === 'PLAY' || state === 'DEAD') return;
+  rentner = !rentner;
+  saveMode(modeName());
+  applyMode();
+  state = 'MENU';
+  showOverlay(bestText(), 'START');
+  modeBtn.blur();
+});
 
 // ---- Spielablauf ----
 async function start() {
@@ -81,19 +123,21 @@ async function start() {
 function gameOver(reason) {
   state = 'DEAD';
   deadT = 0;
-  shake = 0.5;
+  shake = rentner ? 0 : 0.5;
   audio.stop();
   audio.crashSfx();
-  renderer.burst(PX + 4, GROUND - 6, '#ff2e88', 22, 90);
-  renderer.burst(PX + 4, GROUND - 6, '#00e5ff', 12, 70);
-  navigator.vibrate?.(200);
+  if (!rentner) {
+    renderer.burst(PX + 4, GROUND - 6, '#ff2e88', 22, 90);
+    renderer.burst(PX + 4, GROUND - 6, '#00e5ff', 12, 70);
+  }
+  navigator.vibrate?.(rentner ? 80 : 200);
   wake?.release?.().catch(() => {});
   wake = null;
 
   const score = Math.floor(player.dist / 10);
   const isBest = score > best;
-  if (isBest) { best = score; saveBest(best); }
-  player.reasonText = REASONS[reason];
+  if (isBest) { best = score; saveBest(best, modeName()); }
+  player.reasonText = REASONS[modeName()][reason];
   player.finalScore = score;
   player.isBest = isBest;
 }
@@ -155,9 +199,9 @@ function frame(now) {
   while (acc >= STEP) { update(STEP); acc -= STEP; }
   const playing = state === 'PLAY' || state === 'DEAD';
   renderer.draw({
-    player, world, time, shake, state,
+    player, world, time, shake, state, calm: rentner,
     scroll: playing ? player.dist : idleScroll,
-    pulse: audio.getPulse(),
+    pulse: rentner ? 0 : audio.getPulse(),
   });
   requestAnimationFrame(frame);
 }

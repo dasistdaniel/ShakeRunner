@@ -5,6 +5,20 @@ const ROOT = 55; // A1
 const ACID = [0, null, 12, 0, 3, null, 7, null, 0, 12, null, 10, 5, null, 7, 3];
 const BAR_SHIFT = [0, 0, 3, -2];
 
+// Walzer (Rentner-Modus): 3/4 in Achteln (6 je Takt), C-Dur, 8 Takte Schleife
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const WALTZ_CHORDS = [0, 5, 0, 7, 0, 5, 7, 0]; // C F C G C F G C
+const WALTZ_MEL = [
+  [79, null, 76, null, 72, null],
+  [77, null, 81, null, 77, null],
+  [76, null, 79, null, 84, null],
+  [83, null, 79, null, 74, null],
+  [79, null, 76, null, 72, null],
+  [77, null, 81, null, 84, null],
+  [83, null, 79, null, 74, null],
+  [72, null, null, null, null, null],
+];
+
 export class GameAudio {
   constructor() {
     this.ctx = null;
@@ -17,7 +31,10 @@ export class GameAudio {
     this.nextTime = 0;
     this.visKick = [];
     this.lastKick = -9;
+    this.mode = 'techno'; // 'techno' | 'waltz'
   }
+
+  setMode(m) { this.mode = m; }
 
   // Muss in einer Nutzer-Geste aufgerufen werden (iOS/Autoplay-Regeln).
   init() {
@@ -56,7 +73,7 @@ export class GameAudio {
     if (!this.ctx) return;
     this.ctx.resume();
     this.step = 0;
-    this.bpm = this.target = 138;
+    this.bpm = this.target = this.mode === 'waltz' ? 84 : 138;
     this.nextTime = this.ctx.currentTime + 0.12;
     this.playing = true;
     clearInterval(this.timer);
@@ -73,7 +90,7 @@ export class GameAudio {
 
   setIntensity(v) {
     this.intensity = Math.max(0, Math.min(1, v));
-    this.target = 138 + this.intensity * 22; // 138..160 BPM
+    this.target = this.mode === 'waltz' ? 84 : 138 + this.intensity * 22; // Techno 138..160 BPM, Walzer fest 84
   }
 
   // 0..1 Puls für die Optik, synchron zum hörbaren Kick
@@ -90,12 +107,13 @@ export class GameAudio {
     while (this.nextTime < ctx.currentTime + 0.12) {
       this.playStep(this.step, this.nextTime);
       this.bpm += (this.target - this.bpm) * 0.05;
-      this.nextTime += 60 / this.bpm / 4;
-      this.step = (this.step + 1) % 64;
+      this.nextTime += 60 / this.bpm / (this.mode === 'waltz' ? 2 : 4);
+      this.step = (this.step + 1) % (this.mode === 'waltz' ? 48 : 64);
     }
   }
 
   playStep(step, t) {
+    if (this.mode === 'waltz') { this.playWaltz(step, t); return; }
     const i = this.intensity;
     const s = step % 16;
     const bar = Math.floor(step / 16);
@@ -107,6 +125,31 @@ export class GameAudio {
     if (s % 4 === 2) this.rumble(t, BAR_SHIFT[bar]);
     if (i > 0.45 && ACID[s] != null) this.acid(t, ACID[s] + BAR_SHIFT[bar], s % 4 === 0 || Math.random() < 0.25);
     if (i > 0.75 && bar === 3 && s >= 8) this.noiseHit(t, { type: 'highpass', f: 2000 + (s - 8) * 700, dur: 0.1, vol: 0.05 + (s - 8) * 0.01 });
+  }
+
+  playWaltz(step, t) {
+    const bar = Math.floor(step / 6) % 8;
+    const s = step % 6;
+    const off = WALTZ_CHORDS[bar];
+    if (s === 0) this.tone(t, mtof(36 + off), 'triangle', 0.45, 0.7);                              // Oom
+    if (s === 2 || s === 4) for (const iv of [0, 4, 7]) this.tone(t, mtof(60 + off + iv), 'triangle', 0.1, 0.22); // Pah Pah
+    const m = WALTZ_MEL[bar][s];
+    if (m != null) this.tone(t, mtof(m), 'sine', 0.22, 0.55);
+  }
+
+  tone(t, freq, type, vol, dur) {
+    const ctx = this.ctx;
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + dur + 0.02);
   }
 
   kick(t) {

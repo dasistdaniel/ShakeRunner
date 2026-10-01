@@ -1,8 +1,8 @@
 // Einheitliche Eingabe: Tastatur, Bewegungssensor, Touch-Fallback.
 // Callbacks: onPush(strength 0..2), onJump(source 'key' | 'motion' | 'touch')
 
-const SHAKE_THR = 6;      // m/s^2 lineare Beschleunigung auf der X-Achse
-const JUMP_THR = 9;       // m/s^2 nach oben (Y-Achse)
+let SHAKE_THR = 6;      // m/s^2 lineare Beschleunigung auf der X-Achse
+let JUMP_THR = 9;       // m/s^2 nach oben (Y-Achse)
 const PUSH_GAP_MS = 110;  // Entprellung zwischen zwei Schüttel-Impulsen
 const JUMP_GAP_MS = 400;
 
@@ -16,6 +16,8 @@ export function createInput(canvas) {
     onPush: () => {},
     onJump: () => {},
     enableMotion,
+    // Rentner-Modus: empfindlichere Schwellen (sanftes Schütteln genügt)
+    setEasy(on) { SHAKE_THR = on ? 4 : 6; JUMP_THR = on ? 6.5 : 9; },
   };
 
   // ---- Tastatur: abwechselnd links/rechts = volle Kraft, gleiche Taste = halbe ----

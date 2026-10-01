@@ -6,13 +6,21 @@ export const PH = 12;
 const GRAVITY = 640;
 const JUMP_V = 215;
 export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
-const MAX_EXHAUST = 2.5;    // Sekunden ohne Energie bis "außer Atem"
+
+// speedK: px/s je Energiepunkt, d0/d1: Energie-Abbau (konstant + proportional), gain: Schub je Schütteln,
+// exhaust: Sekunden ohne Energie bis "außer Atem", e0: Start-Energie
+const PROFILES = {
+  normal: { speedK: 2.4, d0: 6, d1: 0.17, gain: 9, exhaust: 2.5, e0: 32 },
+  rentner: { speedK: 1.3, d0: 3, d1: 0.1, gain: 12, exhaust: 6, e0: 40 },
+};
 
 export class Player {
-  constructor() { this.reset(); }
+  constructor() { this.prof = PROFILES.normal; this.reset(); }
+
+  setProfile(name) { this.prof = PROFILES[name] || PROFILES.normal; }
 
   reset() {
-    this.e = 32;          // Tempo-Energie 0..100
+    this.e = this.prof.e0;          // Tempo-Energie 0..100
     this.y = 0;           // Höhe über Boden (negativ = im Loch)
     this.vy = 0;
     this.dist = 0;        // zurückgelegte Weltstrecke
@@ -24,9 +32,9 @@ export class Player {
     this.jumped = false;
   }
 
-  get speed() { return this.e * 2.4; }
+  get speed() { return this.e * this.prof.speedK; }
 
-  push(strength) { this.e = Math.min(100, this.e + 9 * strength); }
+  push(strength) { this.e = Math.min(100, this.e + this.prof.gain * strength); }
 
   jump() {
     if (this.y === 0 && this.vy === 0) {
@@ -37,7 +45,7 @@ export class Player {
   }
 
   update(dt) {
-    this.e = Math.max(0, this.e - (6 + 0.17 * this.e) * dt);
+    this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * dt);
     this.dist += this.speed * dt;
     this.anim += this.speed * dt * 0.1;
 
@@ -55,6 +63,6 @@ export class Player {
 
     if (this.e < 4) this.exhaust += dt;
     else this.exhaust = Math.max(0, this.exhaust - dt * 2);
-    if (this.exhaust > MAX_EXHAUST && !this.dead) this.dead = 'breath';
+    if (this.exhaust > this.prof.exhaust && !this.dead) this.dead = 'breath';
   }
 }

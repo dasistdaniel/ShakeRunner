@@ -96,3 +96,24 @@ button:active { transform: translate(calc(var(--u) * 1), calc(var(--u) * 1)); bo
 @keyframes blink { 50% { background: #fff; } }
 
 .hint { font-size: calc(var(--u) * 3.6); line-height: 2; color: #9b8fd1; }
+
+button.alt {
+  font-size: calc(var(--u) * 4);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  color: #9b8fd1;
+  background: transparent;
+  border: calc(var(--u) * 1) solid #9b8fd1;
+  box-shadow: none;
+  animation: none;
+}
+
+/* Rentner-Modus: hoher Kontrast, keine Effekte, größere Schrift */
+#wrap.calm::after { display: none; }
+.calm #overlay { background: #000; }
+.calm h1 { color: #ffe14d; text-shadow: none; }
+.calm #msg { color: #fff; font-size: calc(var(--u) * 6); }
+.calm #hud { font-size: calc(var(--u) * 8); text-shadow: none; }
+.calm #best { color: #ffe14d; }
+.calm button { animation: none; box-shadow: none; border-color: #fff; background: #ffe14d; font-size: calc(var(--u) * 9); }
+.calm button.alt { background: transparent; color: #fff; font-size: calc(var(--u) * 5); }
+.calm .hint { color: #fff; font-size: calc(var(--u) * 4.4); }

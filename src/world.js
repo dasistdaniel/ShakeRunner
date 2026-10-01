@@ -13,6 +13,12 @@ export class World {
 
   spawn(speed) {
     const x = this.nextX;
+    if (this.calm) { // Rentner-Modus: nur niedrige Kisten, keine Abgründe, viel Platz dazwischen
+      const o = { type: 'box', x, w: Math.random() < 0.5 ? 10 : 14, h: Math.random() < 0.5 ? 10 : 12 };
+      this.obs.push(o);
+      this.nextX = x + o.w + Math.max(150, Math.max(speed, 50) * (1.8 + Math.random() * 0.8) + 60);
+      return;
+    }
     const diff = Math.min(1, x / 5000);
     const roll = Math.random();
     let o;

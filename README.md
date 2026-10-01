@@ -11,6 +11,9 @@
 Tempo = Energie: jedes Schütteln gibt Schub, ohne Schütteln verlierst du Tempo. Wer ~2,5 s fast steht, ist außer Atem (Game Over). Je schneller, desto mehr Layer und BPM im Techno-Beat.
 Ohne Sensor (oder iOS-Erlaubnis verweigert): Tippen links/rechts = Schub, Wischen hoch = Sprung.
 
+## Rentner-Modus
+Menü-Knopf *RENTNER-MODUS* oder Link mit `?rentner` (z. B. `https://dasistdaniel.github.io/ShakeRunner/?rentner`): ca. halbes Tempo, nur niedrige Kisten, keine Abgründe, sanftes Schütteln genügt, Walzer statt Techno, schwarz/gelb/weiß ohne Effekte. Eigener Highscore.
+
 ## Starten
 ```bash
 npx serve .
