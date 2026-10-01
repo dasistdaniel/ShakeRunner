@@ -9,8 +9,9 @@ export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
 
 // Rentner-Upgrades: nach so vielen geschafften Hürden wird die nächste Stufe freigeschaltet
 export const STAGE_AT = [3, 10, 20, 25];
-const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4, 0.4]; // Energie-Abbau je Stufe
-const STAGE_SPEED = [1, 1, 1, 1, 1, 1.6];            // Stufe 5 (blaue Pille): rennt selbst, deutlich schneller
+export const BIKE_AT = 75; // Stufe 6: Midlife-Crisis, Motorrad (nach Stufe 5)
+const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4, 0.4, 0.3]; // Energie-Abbau je Stufe
+const STAGE_SPEED = [1, 1, 1, 1, 1, 1.6, 2.2];         // Stufe 5 (blaue Pille): rennt selbst, deutlich schneller
 
 // speedK: px/s je Energiepunkt, d0/d1: Energie-Abbau (konstant + proportional), gain: Schub je Schütteln,
 // exhaust: Sekunden ohne Energie bis "außer Atem", e0: Start-Energie
@@ -26,7 +27,7 @@ export class Player {
 
   reset() {
     this.chairX = 0;   // Welt-X, wo Rollstuhl + Zivi stehen bleiben (Stufe 5)
-    this.stage = 0; // Rentner-Upgrades: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi, 5 blaue Pille
+    this.stage = 0; // Rentner-Upgrades: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi, 5 blaue Pille, 6 Motorrad
     this.e = this.prof.e0;          // Tempo-Energie 0..100
     this.y = 0;           // Höhe über Boden (negativ = im Loch)
     this.vy = 0;

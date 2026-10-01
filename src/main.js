@@ -1,5 +1,5 @@
 import { createInput } from './input.js';
-import { Player, PX, GROUND, STAGE_AT } from './player.js';
+import { Player, PX, GROUND, STAGE_AT, BIKE_AT } from './player.js';
 import { World } from './world.js';
 import { GameAudio } from './audio.js';
 import { createRenderer } from './render.js';
@@ -227,6 +227,12 @@ function update(dt) {
       player.stage++;
       audio.upgradeSfx(player.stage);
       showToast(UPGRADES[player.stage - 1]);
+    }
+    if (rentner && player.stage === 5 && world.passed >= BIKE_AT) { // Midlife-Crisis: Motorrad
+      player.stage = 6;
+      audio.upgradeSfx(6);
+      audio.revSfx();
+      showToast('MIDLIFE CRISIS!<br>ER FINDET EIN MOTORRAD!', 4500);
     }
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);

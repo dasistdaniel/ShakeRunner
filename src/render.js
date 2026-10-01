@@ -99,6 +99,30 @@ export function createRenderer(canvas) {
     if (zivi) ctx.drawImage(zivi, x - 11, by - PH);
   }
 
+  // Motorrad mit Fahrer: Heck bei x-4, Sitz bei x+3, Lenker bei x+13
+  function drawBike(x, by, frame, anim) {
+    const spoke = Math.floor(anim * 2) % 4; // drehende "Speiche" an der Nabe
+    const sx = [0, 2, 0, -2][spoke], sy = [-2, 0, 2, 0][spoke];
+    for (const wx of [x - 4, x + 9]) {
+      ctx.drawImage(wheel, wx, by - 9);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(wx + 4 + sx, by - 5 + sy, 1, 1);
+    }
+    ctx.fillStyle = '#ff4040';
+    ctx.fillRect(x + 1, by - 9, 12, 3);     // Rahmen/Tank
+    ctx.fillRect(x + 11, by - 12, 2, 4);    // Gabel/Lenker
+    ctx.fillStyle = '#ffe14d';
+    ctx.fillRect(x + 12, by - 13, 3, 1);    // Griff
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(x + 1, by - 10, 6, 1);     // Sitz
+    ctx.drawImage(frame, 0, 0, 8, 8, x + 3, by - 17, 8, 8); // Fahrer
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(x + 5, by - 10, 6, 2);     // Oberschenkel
+    ctx.fillRect(x + 9, by - 8, 2, 3);      // Unterschenkel
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 8, by - 13, 5, 1);     // Arm zum Lenker
+  }
+
   // Figur je nach Stufe: 0 Rentner, 1 +Rollator, 2 neue Hüfte, 3 Rollstuhl, 4 Rollstuhl + Zivi,
   // 5 blaue Pille: steht auf, rennt selbst, Rollstuhl + Zivi bleiben zurück
   function drawCharacter(player, time, scroll) {
@@ -112,6 +136,10 @@ export function createRenderer(canvas) {
     if (st === 5) {
       const cx = Math.round(player.chairX - Math.floor(scroll));
       if (cx > -26) drawChair(cx, GROUND, null, ziviSprites.runB);
+    }
+    if (st === 6) {
+      drawBike(PX - 3, by, frame, player.anim);
+      return;
     }
     if (st === 3 || st === 4) {
       drawChair(PX, by, frame, st === 4 ? pick(ziviSprites) : null);

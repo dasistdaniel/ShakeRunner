@@ -300,6 +300,31 @@ export class GameAudio {
     o.stop(t + 0.62);
   }
 
+  // Motorrad: aufheulender Motor
+  revSfx() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(55, t);
+    o.frequency.exponentialRampToValueAtTime(190, t + 0.5);
+    o.frequency.exponentialRampToValueAtTime(90, t + 0.9);
+    o.frequency.exponentialRampToValueAtTime(220, t + 1.3);
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.3, t + 0.1);
+    g.gain.setValueAtTime(0.3, t + 1.1);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    o.connect(f);
+    f.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + 1.55);
+  }
+
   crashSfx() {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;
