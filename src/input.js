@@ -122,6 +122,11 @@ export function createInput(canvas) {
     }
   }
 
+  // Android/Desktop: keine Erlaubnis-Abfrage nötig, Sensoren sofort lauschen lassen.
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission !== 'function') {
+    enableMotion();
+  }
+
   // ---- Touch-Fallback (nur wenn kein Sensor liefert): Tippen = Schub, Wischen hoch = Sprung ----
   let touchStartY = null, swiped = false, lastTouchSide = 0;
   canvas.addEventListener('pointerdown', (e) => {
