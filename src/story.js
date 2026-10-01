@@ -1,6 +1,6 @@
 // Rentner-Story: Upgrades nach geschafften Hürden, Fahrzeug-Treffer, Kevins Verfolgung, Zufalls-Kommentare.
 // ui: { toast(html, ms), shout(html, delayMs), quip(html) } wird von main.js geliefert.
-import { PX, STAGE_AT, BIKE_AT, KEVIN_DELAY } from './player.js';
+import { PX, STAGE_AT, BIKE_AT, KEVIN_DELAY, TRIP_SECONDS } from './player.js';
 
 export const ZIVI_NAME = 'KEVIN';
 
@@ -38,6 +38,12 @@ const QUIPS = [
   'DIE JUGEND<br>VON HEUTE...',
 ];
 
+const BACK_LINES = [
+  'WAS WAR DAS<br>FÜRN TRIP?!',
+  'ICH HAB NIX<br>GENOMMEN, ECHT!',
+  'MEIN KREISLAUF...<br>MEIN KREISLAUF!',
+];
+
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const nextQuipIn = () => 12 + Math.random() * 8;
 
@@ -52,14 +58,40 @@ export function createStory({ player, world, audio, ui }) {
     audio.upgradeSfx(stage);
   }
 
+  // Rote Pille: kurz im "echten" Spiel (Neon, Techno, normales Tempo, unverwundbar)
+  function switchWorld(mode) {
+    ui.glitch(0.9);
+    audio.glitchSfx();
+    audio.stop();
+    audio.setMode(mode);
+    audio.start();
+  }
+
+  function startTrip() {
+    player.redTaken = true;
+    player.trip = true;
+    player.tripT = TRIP_SECONDS;
+    player.setProfile('normal');
+    switchWorld('techno');
+    ui.toast('WILLKOMMEN IM<br>ECHTEN SPIEL!', 3000);
+  }
+
+  function endTrip() {
+    player.trip = false;
+    player.setProfile('rentner');
+    switchWorld('waltz');
+    ui.toast('WILLKOMMEN ZURÜCK<br>IN DER MATRIX!', 2400);
+    ui.toast(pick(BACK_LINES), 3200, 2600);
+  }
+
   // Wird jede Spielframe im Rentner-Modus aufgerufen
   function update(dt) {
     if (world.pillNew) {
-      world.pillNew = false;
-      ui.toast('BLAUE PILLE!<br>SPRING UND FANG SIE!', 3000);
+      ui.toast(world.pillNew === 'red' ? 'ROTE PILLE!<br>WILLST DU DIE WAHRHEIT?' : 'BLAUE PILLE!<br>SPRING UND FANG SIE!', 3000);
+      world.pillNew = null;
     }
-    if (world.pillCaught) { // Stufe 5: aufstehen, Kevin abhängen (der setzt aber zur Verfolgung an)
-      world.pillCaught = false;
+    if (world.pillCaught === 'red') startTrip();
+    if (world.pillCaught === 'blue') { // Stufe 5: aufstehen, Kevin abhängen (der setzt aber zur Verfolgung an)
       player.kevin = { x: player.dist + PX - 13, hasChair: player.vehicle === 'chair', delay: KEVIN_DELAY };
       player.vehicle = null;
       enterStage(5);
@@ -76,6 +108,9 @@ export function createStory({ player, world, audio, ui }) {
       audio.revSfx();
       ui.toast('MIDLIFE CRISIS!<br>ER FINDET EIN MOTORRAD!', 4500);
     }
+
+    if (player.trip && (player.tripT -= dt) <= 0) endTrip();
+    world.pillCaught = null;
 
     quipT -= dt;
     if (quipT <= 0) {

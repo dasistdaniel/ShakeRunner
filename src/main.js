@@ -57,6 +57,8 @@ let time = 0;
 let wake = null;
 let cueOn = true; // Absprung-Hinweiston (Taste M schaltet um)
 let shoutDelay = null;
+let toastDelay = null;
+let glitchT = 0;
 
 // ---- Banner (Upgrades), Kevins Zuruf, Kommentare ----
 function timedShow(el, html, ms) {
@@ -69,10 +71,16 @@ function timedShow(el, html, ms) {
 function hideBanners() {
   for (const el of [toast, shout, quip]) { clearTimeout(el._t); el.hidden = true; }
   clearTimeout(shoutDelay);
+  clearTimeout(toastDelay);
 }
 
 const ui = {
-  toast: (html, ms = 2600) => timedShow(toast, html, ms),
+  toast: (html, ms = 2600, delayMs = 0) => {
+    if (!delayMs) { timedShow(toast, html, ms); return; }
+    clearTimeout(toastDelay);
+    toastDelay = setTimeout(() => { if (state === 'PLAY') timedShow(toast, html, ms); }, delayMs);
+  },
+  glitch: (sec) => { glitchT = sec; },
   quip: (html) => timedShow(quip, html, 3200),
   shout: (html, delayMs) => {
     clearTimeout(shoutDelay);
@@ -180,9 +188,12 @@ async function start() {
   try { screen.orientation.lock('portrait').catch(() => {}); } catch { /* nur im Vollbild/PWA */ }
   try { wake = await navigator.wakeLock?.request('screen'); } catch { /* optional */ }
 
+  player.setProfile(modeName()); // nach einem Trip zurück auf das Rentner-Profil
   player.reset();
   world.reset();
   story.reset();
+  audio.setMode(rentner ? 'waltz' : 'techno');
+  glitchT = 0;
   overlay.hidden = true;
   hideBanners();
   hud.hidden = false;
@@ -273,6 +284,8 @@ function update(dt) {
     player.anim += dt * 8;
   }
   shake = Math.max(0, shake - dt);
+  glitchT = Math.max(0, glitchT - dt);
+  wrap.classList.toggle('calm', rentner && !player.trip); // im Trip: Neon-Optik
   renderer.update(dt, player, state === 'PLAY');
 }
 
@@ -284,10 +297,11 @@ function frame(now) {
   while (acc >= STEP) { update(STEP); acc -= STEP; }
   const playing = state === 'PLAY' || state === 'DEAD';
   renderer.draw({
-    player, world, time, shake, state, calm: rentner,
+    player, world, time, shake, state, calm: rentner && !player.trip,
     scroll: playing ? player.dist : idleScroll,
-    pulse: rentner ? 0 : audio.getPulse(),
+    pulse: rentner && !player.trip ? 0 : audio.getPulse(),
   });
+  if (glitchT > 0) renderer.glitch(Math.min(1, glitchT / 0.45), time);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -343,6 +343,14 @@ export class GameAudio {
     o.stop(t + 0.4);
   }
 
+  // Matrix-Glitch beim Wechsel der Welten
+  glitchSfx() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.noiseHit(t, { type: 'bandpass', f: 2500, q: 3, dur: 0.6, vol: 0.5 });
+    for (let i = 0; i < 8; i++) this.tone(t + i * 0.06, 200 + Math.random() * 1800, 'square', 0.07, 0.05);
+  }
+
   crashSfx() {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;

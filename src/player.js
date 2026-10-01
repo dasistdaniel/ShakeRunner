@@ -9,6 +9,8 @@ export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
 
 // Rentner-Upgrades: nach so vielen geschafften Hürden wird die nächste Stufe freigeschaltet
 export const STAGE_AT = [3, 10, 20, 25];
+export const RED_AT = 90;  // rote Pille (Trip ins "echte" Spiel), nur nach dem Motorrad
+export const TRIP_SECONDS = 10;
 export const BIKE_AT = 75; // Stufe 6: Midlife-Crisis, Motorrad (nach Stufe 5)
 const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4, 0.4, 0.3]; // Energie-Abbau je Stufe
 
@@ -33,6 +35,9 @@ export class Player {
     this.stage = 0;
     this.vehicle = null;   // null | 'rollator' | 'chair' | 'bike': jedes Fahrzeug fängt einen Treffer ab
     this.invuln = 0;       // Restzeit Unverwundbarkeit
+    this.redTaken = false; // rote Pille schon genommen
+    this.trip = false;     // Matrix-Trip: kurz im "echten" Spiel (unverwundbar)
+    this.tripT = 0;
     this.wreck = null;     // { kind, x }: zerstörtes Fahrzeug bleibt in der Welt liegen
     this.kevin = null;     // { x, hasChair, delay }: ab Stufe 5 verfolgt Kevin den Läufer
     this.e = this.prof.e0; // Tempo-Energie 0..100
@@ -47,7 +52,7 @@ export class Player {
     this.jumped = false;
   }
 
-  get speedFactor() { return this.vehicle === 'bike' ? 2.2 : this.stage >= 5 ? 1.6 : 1; }
+  get speedFactor() { return this.trip ? 1 : this.vehicle === 'bike' ? 2.2 : this.stage >= 5 ? 1.6 : 1; }
 
   get speed() { return this.e * this.prof.speedK * this.speedFactor; }
 
@@ -80,11 +85,12 @@ export class Player {
     this.invuln = Math.max(0, this.invuln - dt);
     this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * STAGE_DECAY[this.stage] * dt);
     if (this.vehicle === 'chair' && this.stage === 4) this.e = Math.max(this.e, 25); // Zivi schiebt: nie ganz stehen bleiben
+    if (this.trip) this.e = Math.max(this.e, 30); // im Trip nie außer Atem
     this.dist += this.speed * dt;
     this.anim += this.speed * dt * 0.1;
 
     const k = this.kevin;
-    if (k) {
+    if (k && !this.trip) { // Kevin pausiert während des Trips
       if (k.delay > 0) k.delay -= dt;
       else {
         k.x += KEVIN_SPEED * dt;

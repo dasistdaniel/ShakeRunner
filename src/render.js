@@ -196,7 +196,7 @@ export function createRenderer(canvas) {
       const x = Math.round(o.x - d);
       if (x > W || x + o.w < 0) continue;
       if (o.type === 'pill') {
-        ctx.drawImage(pill, x, GROUND - 37 + Math.round(Math.sin(time * 5) * 2));
+        ctx.drawImage(o.color === 'red' ? pillRed : pill, x, GROUND - 37 + Math.round(Math.sin(time * 5) * 2));
         continue;
       }
       if (o.type === 'pit') {
@@ -228,6 +228,7 @@ export function createRenderer(canvas) {
   const rollator = makeSprite(ROLLATOR, ROLLATOR_PAL);
   const wheel = makeSprite(WHEEL, { w: '#ffffff' });
   const pill = makeSprite(PILL, PILL_PAL);
+  const pillRed = makeSprite(PILL, { w: '#ffffff', B: '#ff1f1f', L: '#ff9a9a' });
   const obstacleSprites = Object.fromEntries(Object.entries(OBSTACLES).map(([k, rows]) => [k, makeSprite(rows, OBSTACLE_PAL)]));
   const ziviSprites = {
     runA: makeSprite(FRAMES.runA, ZIVI_PAL), runB: makeSprite(FRAMES.runB, ZIVI_PAL), jump: makeSprite(FRAMES.jump, ZIVI_PAL),
@@ -359,5 +360,21 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
 
-  return { draw, update, burst };
+  // Matrix-Übergang: grüner Datenregen + Bildrisse über dem fertigen Bild (a = Stärke 0..1)
+  function glitch(a, t) {
+    const f = Math.floor(t * 40);
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 255, 70, ${0.55 * a})`;
+    for (let x = 0; x < W; x += 5) {
+      const h = 16 + ((x * 37 + f * 53) % 120);
+      ctx.fillRect(x, ((x * 91 + f * 29) % (H + h)) - h, 2, h);
+    }
+    for (let i = 0; i < 6; i++) { // Bildrisse
+      const y = (f * 41 + i * 67) % H, h = 2 + ((f + i) % 5);
+      ctx.drawImage(canvas, 0, y, W, h, ((f + i * 7) % 21) - 10, y, W, h);
+    }
+    ctx.restore();
+  }
+
+  return { draw, update, burst, glitch };
 }
