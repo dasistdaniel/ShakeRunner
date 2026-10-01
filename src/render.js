@@ -7,6 +7,10 @@ const PAL = { b: '#ff2e88', s: '#ffcc99', k: '#1a0b33', j: '#00e5ff', p: '#5b3cf
 const CALM_PAL = { b: '#ffe14d', s: '#ffffff', k: '#000000', j: '#ffffff', p: '#00e5ff', w: '#ffe14d' };
 const ROLLATOR = ['rrrrrrrrr', '.r.....r.', '.r.....r.', '.r.....r.', '.w.....w.', 'www...www'];
 const ROLLATOR_PAL = { r: '#ff4040', w: '#ffffff' };
+const WHEEL = [
+  '..wwwww..', '.w.....w.', 'w.......w', 'w.......w', 'w...w...w', 'w.......w', 'w.......w', '.w.....w.', '..wwwww..',
+];
+const ZIVI_PAL = { b: '#39ff88', s: '#ffffff', k: '#000000', j: '#39ff88', p: '#39ff88', w: '#ffffff' };
 const FRAMES = {
   runA: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', 'jj.jj.jj', '..pppp..', '.pp..pp.', 'pp....pp', 'ww....ww'],
   runB: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', '.j.jj.j.', '..pppp..', '..pppp..', '..pp.pp.', '..ww.ww.'],
@@ -74,8 +78,42 @@ export function createRenderer(canvas) {
     runA: makeSprite(FRAMES.runA, CALM_PAL), runB: makeSprite(FRAMES.runB, CALM_PAL), jump: makeSprite(FRAMES.jump, CALM_PAL),
   };
 
+  // Figur je nach Upgrade-Stufe: 0 Rentner, 1 +Rollator, 2 neue Hüfte, 3 Rollstuhl, 4 Rollstuhl + Zivi
+  function drawCharacter(player, time) {
+    const y = Math.round(player.y);
+    const by = GROUND - y;
+    const air = player.y !== 0;
+    const pick = (set) => (air ? set.jump : (Math.floor(player.anim) % 2 ? set.runA : set.runB));
+    const frame = pick(calmSprites);
+    const st = player.stage;
+
+    if (st >= 3) {
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(PX - 3, by - 14, 4, 1);               // Schiebegriff
+      ctx.fillRect(PX - 1, by - 14, 2, 10);              // Rückenlehne
+      ctx.drawImage(frame, 0, 0, 8, 8, PX, by - 14, 8, 8); // Oberkörper
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(PX - 1, by - 4, 9, 1);                // Sitz
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillRect(PX + 3, by - 6, 7, 2);                // Oberschenkel
+      ctx.fillRect(PX + 8, by - 4, 2, 3);                // Unterschenkel
+      ctx.fillStyle = '#ffe14d';
+      ctx.fillRect(PX + 8, by - 1, 4, 1);                // Schuhe
+      ctx.drawImage(wheel, PX - 1, by - 9);
+      if (st >= 4) ctx.drawImage(pick(ziviSprites), PX - 11, by - PH);
+      return;
+    }
+
+    ctx.drawImage(frame, PX, by - PH);
+    if (st === 1) ctx.drawImage(rollator, PX + 4, by - 6);
+    if (st === 2) { // neue Hüfte: glitzert
+      ctx.fillStyle = Math.floor(time * 6) % 2 ? '#ffffff' : '#00e5ff';
+      ctx.fillRect(PX + 2, by - 5, 2, 2);
+    }
+  }
+
   // Rentner-Modus: schwarz/weiß/gelb, keine Effekte, nur das Nötigste
-  function drawCalm({ player, world, scroll, state }) {
+  function drawCalm({ player, world, scroll, state, time }) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#262626';
@@ -100,11 +138,7 @@ export function createRenderer(canvas) {
         ctx.fillRect(x, GROUND - o.h, o.w, o.h);
       }
     }
-    if (state !== 'DEAD' || player.dead === 'fall') {
-      const frame = player.y !== 0 ? calmSprites.jump : (Math.floor(player.anim) % 2 ? calmSprites.runA : calmSprites.runB);
-      ctx.drawImage(frame, PX, Math.round(GROUND - PH - player.y));
-      if (player.rollator) ctx.drawImage(rollator, PX + 4, Math.round(GROUND - 6 - player.y));
-    }
+    if (state !== 'DEAD' || player.dead === 'fall') drawCharacter(player, time);
     if (state === 'PLAY') {
       ctx.fillStyle = '#fff';
       ctx.fillRect(6, 24, W - 12, 8);
@@ -116,6 +150,10 @@ export function createRenderer(canvas) {
   }
 
   const rollator = makeSprite(ROLLATOR, ROLLATOR_PAL);
+  const wheel = makeSprite(WHEEL, { w: '#ffffff' });
+  const ziviSprites = {
+    runA: makeSprite(FRAMES.runA, ZIVI_PAL), runB: makeSprite(FRAMES.runB, ZIVI_PAL), jump: makeSprite(FRAMES.jump, ZIVI_PAL),
+  };
 
   let parts = [];
   let dustT = 0;

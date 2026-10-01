@@ -1,5 +1,5 @@
 import { createInput } from './input.js';
-import { Player, PX, GROUND } from './player.js';
+import { Player, PX, GROUND, STAGE_AT } from './player.js';
 import { World } from './world.js';
 import { GameAudio } from './audio.js';
 import { createRenderer } from './render.js';
@@ -18,6 +18,7 @@ const REASONS = {
     breath: 'NICKERCHEN GEMACHT?',
   },
 };
+const UPGRADES = ['UPGRADE: ROLLATOR!', 'NEUE HÜFTE! ROLLATOR WEG!', 'UPGRADE: ROLLSTUHL!', 'ZIVI SCHIEBT! GUTE FAHRT!'];
 const HINTS = {
   normal: 'HANDY SCHÜTTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN',
   rentner: 'GANZ GEMÜTLICH SCHÜTTELN<br>SANFT NACH OBEN = SPRINGEN',
@@ -186,10 +187,10 @@ function update(dt) {
     const hit = world.update(player);
     if (hit) player.dead = player.dead || hit;
     else if (cueOn && world.cue(player)) audio.cueSfx();
-    if (rentner && !player.rollator && world.passed >= 3) {
-      player.rollator = true; // Upgrade: Pixel-Rollator nach 3 geschafften Hürden
-      audio.upgradeSfx();
-      showToast('UPGRADE: ROLLATOR!');
+    if (rentner && player.stage < STAGE_AT.length && world.passed >= STAGE_AT[player.stage]) {
+      player.stage++;
+      audio.upgradeSfx(player.stage);
+      showToast(UPGRADES[player.stage - 1]);
     }
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);

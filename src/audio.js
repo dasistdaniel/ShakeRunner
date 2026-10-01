@@ -270,10 +270,10 @@ export class GameAudio {
   }
 
   // Upgrade-Jingle: aufsteigender C-Dur-Akkord
-  upgradeSfx() {
+  upgradeSfx(level = 1) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    [72, 76, 79, 84].forEach((m, i) => this.tone(t + i * 0.09, mtof(m), 'triangle', 0.25, 0.35));
+    [72, 76, 79, 84].forEach((m, i) => this.tone(t + i * 0.09, mtof(m + (level - 1) * 2), 'triangle', 0.25, 0.35));
   }
 
   crashSfx() {
