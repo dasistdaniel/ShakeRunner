@@ -1,9 +1,10 @@
 import { createInput } from './input.js';
-import { Player, PX, GROUND, STAGE_AT, BIKE_AT } from './player.js';
+import { Player, PX, GROUND } from './player.js';
 import { World } from './world.js';
 import { GameAudio } from './audio.js';
 import { createRenderer } from './render.js';
-import { loadBest, saveBest, loadMode, saveMode } from './storage.js';
+import { createStory, ZIVI_NAME } from './story.js';
+import { loadBest, saveBest, loadMode, saveMode, loadScores, addScore, loadName, saveName } from './storage.js';
 
 const STEP = 1 / 60;
 const REASONS = {
@@ -16,17 +17,9 @@ const REASONS = {
     crash: 'AUA! MEIN RÜCKEN!',
     fall: 'LOCH IM WEG!',
     breath: 'NICKERCHEN GEMACHT?',
+    kevin: `${ZIVI_NAME} HAT DICH<br>ERWISCHT!`,
   },
 };
-const ZIVI_NAME = 'KEVIN';
-const SHOUTS = [
-  'WARTE! WER ZAHLT MEIN<br>TAXI ZURÜCK?!',
-  'DAS MELDE ICH<br>DEM CHEF!',
-  'MEIN RÜCKEN!<br>UND DER ROLLSTUHL?!',
-  'ICH KÜNDIGE!<br>GANZ BESTIMMT!',
-  'ICH WAR DOCH<br>NETT ZU DIR!',
-];
-const UPGRADES = ['UPGRADE: ROLLATOR!', 'NEUE HÜFTE! ROLLATOR WEG!', 'UPGRADE: ROLLSTUHL!', `ZIVI ${ZIVI_NAME} SCHIEBT!<br>GUTE FAHRT!`];
 const HINTS = {
   normal: 'HANDY SCHÜTTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN',
   rentner: 'GANZ GEMÜTLICH SCHÜTTELN<br>SANFT NACH OBEN = SPRINGEN',
@@ -40,29 +33,12 @@ const hud = $('hud');
 const msg = $('msg');
 const startBtn = $('startBtn');
 const modeBtn = $('modeBtn');
+const shareBtn = $('shareBtn');
+const nameInput = $('nameInput');
+const scoresEl = $('scores');
 const toast = $('toast');
 const shout = $('shout');
-let shoutTimers = [];
-let toastTimer = null;
-
-// Kevin ruft dem Läufer hinterher (kurz nach dem Banner)
-function showShout() {
-  shoutTimers.forEach(clearTimeout);
-  shoutTimers = [setTimeout(() => {
-    if (state !== 'PLAY') return;
-    shout.innerHTML = `<b>${ZIVI_NAME}:</b><br>${SHOUTS[Math.floor(Math.random() * SHOUTS.length)]}`;
-    shout.hidden = false;
-    audio.shoutSfx();
-    shoutTimers.push(setTimeout(() => { shout.hidden = true; }, 3200));
-  }, 1600)];
-}
-
-function showToast(text, ms = 2600) {
-  toast.innerHTML = text;
-  toast.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, ms);
-}
+const quip = $('quip');
 
 const player = new Player();
 const world = new World();
@@ -80,6 +56,35 @@ let overAt = 0;
 let time = 0;
 let wake = null;
 let cueOn = true; // Absprung-Hinweiston (Taste M schaltet um)
+let shoutDelay = null;
+
+// ---- Banner (Upgrades), Kevins Zuruf, Kommentare ----
+function timedShow(el, html, ms) {
+  el.innerHTML = html;
+  el.hidden = false;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.hidden = true; }, ms);
+}
+
+function hideBanners() {
+  for (const el of [toast, shout, quip]) { clearTimeout(el._t); el.hidden = true; }
+  clearTimeout(shoutDelay);
+}
+
+const ui = {
+  toast: (html, ms = 2600) => timedShow(toast, html, ms),
+  quip: (html) => timedShow(quip, html, 3200),
+  shout: (html, delayMs) => {
+    clearTimeout(shoutDelay);
+    shoutDelay = setTimeout(() => {
+      if (state !== 'PLAY') return;
+      timedShow(shout, `<b>${ZIVI_NAME}:</b><br>${html}`, 3200);
+      audio.shoutSfx();
+    }, delayMs);
+  },
+};
+
+const story = createStory({ player, world, audio, ui });
 
 // ---- Layout: 180x320 skaliert, bevorzugt ganzzahlig ----
 function layout() {
@@ -96,14 +101,30 @@ const touchDevice = matchMedia('(pointer: coarse)').matches;
 document.querySelector('.key-hint').hidden = touchDevice;
 document.querySelector('.touch-hint').hidden = !touchDevice;
 
-function showOverlay(text, btn) {
-  msg.innerHTML = text;
-  startBtn.textContent = btn;
-  overlay.hidden = false;
-  hud.hidden = true;
+// ---- Menü, Bestenliste, Teilen ----
+const modeName = () => (rentner ? 'rentner' : 'normal');
+const bestText = () => (best ? `BEST ${best} M` : '');
+
+nameInput.value = loadName();
+const cleanName = () => nameInput.value.toUpperCase().replace(/[^A-Z0-9ÄÖÜ ]/g, '').trim().slice(0, 10) || 'ANONYM';
+nameInput.addEventListener('input', () => saveName(nameInput.value.toUpperCase().slice(0, 10)));
+
+function renderScores(rank = -1) {
+  const list = loadScores(modeName());
+  scoresEl.textContent = list.length
+    ? `BESTENLISTE\n${list.map((s, i) => `${i === rank ? '>' : ' '}${i + 1} ${s.name.padEnd(10)} ${String(s.score).padStart(4)}`).join('\n')}`
+    : '';
 }
 
-const modeName = () => (rentner ? 'rentner' : 'normal');
+// view: 'menu' (Name, Hinweise) oder 'over' (Teilen)
+function showOverlay(text, btn, view = 'menu', rank = -1) {
+  msg.innerHTML = text;
+  startBtn.textContent = btn;
+  overlay.dataset.view = view;
+  overlay.hidden = false;
+  hud.hidden = true;
+  renderScores(rank);
+}
 
 function applyMode() {
   const m = modeName();
@@ -119,8 +140,6 @@ function applyMode() {
   best = loadBest(m);
 }
 
-const bestText = () => (best ? `BEST ${best} M` : '');
-
 applyMode();
 showOverlay(bestText(), 'START');
 
@@ -134,6 +153,24 @@ modeBtn.addEventListener('click', () => {
   modeBtn.blur();
 });
 
+shareBtn.addEventListener('click', async () => {
+  const url = location.origin + location.pathname + (rentner ? '?rentner' : '');
+  const text = `Ich hab im ${rentner ? 'Rentner-Runner' : 'ShakeRunner'} ${player.finalScore} M geschafft! Schaffst du mehr?`;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'ShakeRunner', text, url }); return; }
+  } catch (e) {
+    if (e.name === 'AbortError') return; // Teilen-Dialog abgebrochen
+  }
+  try {
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    shareBtn.textContent = 'KOPIERT!';
+    setTimeout(() => { shareBtn.textContent = 'TEILEN'; }, 1800);
+  } catch {
+    window.prompt('Zum Teilen kopieren:', `${text} ${url}`);
+  }
+  shareBtn.blur();
+});
+
 // ---- Spielablauf ----
 async function start() {
   if (state === 'PLAY' || state === 'DEAD') return;
@@ -145,10 +182,9 @@ async function start() {
 
   player.reset();
   world.reset();
+  story.reset();
   overlay.hidden = true;
-  toast.hidden = true;
-  shout.hidden = true;
-  shoutTimers.forEach(clearTimeout);
+  hideBanners();
   hud.hidden = false;
   $('best').textContent = `HI ${best}`;
   state = 'PLAY';
@@ -156,8 +192,7 @@ async function start() {
 }
 
 function gameOver(reason) {
-  shout.hidden = true;
-  shoutTimers.forEach(clearTimeout);
+  hideBanners();
   state = 'DEAD';
   deadT = 0;
   shake = rentner ? 0 : 0.5;
@@ -174,6 +209,10 @@ function gameOver(reason) {
   const score = Math.floor(player.dist / 10);
   const isBest = score > best;
   if (isBest) { best = score; saveBest(best, modeName()); }
+  const name = cleanName();
+  saveName(name);
+  player.rank = score > 0 ? addScore(modeName(), name, score) : -1;
+
   player.reasonText = REASONS[modeName()][reason];
   if (player.stage === 4) player.reasonText += `<br><br>${ZIVI_NAME}:<br>"WAR NICHT MEINE SCHULD!"`;
   player.finalScore = score;
@@ -186,6 +225,8 @@ function showGameOver() {
   showOverlay(
     `${player.reasonText}<br><br>${player.finalScore} M${player.isBest ? '<br>NEUER REKORD!' : `<br>BEST ${best} M`}`,
     'NOCHMAL',
+    'over',
+    player.rank,
   );
 }
 
@@ -199,7 +240,9 @@ input.onJump = (src) => {
   }
 };
 startBtn.addEventListener('click', start);
-addEventListener('keydown', (e) => { if (e.code === 'KeyM' && !e.repeat) cueOn = !cueOn; });
+addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM' && !e.repeat && e.target.tagName !== 'INPUT') cueOn = !cueOn;
+});
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) audio.suspend();
@@ -212,27 +255,11 @@ function update(dt) {
   if (state === 'PLAY') {
     player.update(dt);
     const hit = world.update(player);
-    if (world.pillNew) { world.pillNew = false; showToast('BLAUE PILLE!<br>SPRING UND FANG SIE!', 3000); }
-    if (world.pillCaught) { // Stufe 5: Rollstuhl verlassen, Kevin abhängen
-      world.pillCaught = false;
-      player.stage = 5;
-      player.chairX = player.dist + PX - 1;
-      audio.upgradeSfx(5);
-      showToast(`MACHS GUT ${ZIVI_NAME},<br>DU LOOSER!`, 5000);
-      showShout();
-    }
-    if (hit) player.dead = player.dead || hit;
-    else if (cueOn && world.cue(player)) audio.cueSfx();
-    if (rentner && player.stage < STAGE_AT.length && world.passed >= STAGE_AT[player.stage]) {
-      player.stage++;
-      audio.upgradeSfx(player.stage);
-      showToast(UPGRADES[player.stage - 1]);
-    }
-    if (rentner && player.stage === 5 && world.passed >= BIKE_AT) { // Midlife-Crisis: Motorrad
-      player.stage = 6;
-      audio.upgradeSfx(6);
-      audio.revSfx();
-      showToast('MIDLIFE CRISIS!<br>ER FINDET EIN MOTORRAD!', 4500);
+    if (rentner) story.update(dt);
+    if (hit) {
+      if (!(rentner && story.onCrash())) player.dead = player.dead || hit; // Fahrzeug fängt einen Treffer ab
+    } else if (cueOn && world.cue(player)) {
+      audio.cueSfx();
     }
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);
@@ -275,6 +302,6 @@ if (location.search.includes('debug')) {
   }, 100);
 }
 
-window.__sr = { player, world, audio, get state() { return state; } }; // Debug/Tests
+window.__sr = { player, world, audio, story, get state() { return state; } }; // Debug/Tests
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

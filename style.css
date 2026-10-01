@@ -151,3 +151,53 @@ button.alt {
   pointer-events: none;
 }
 #shout[hidden] { display: none; }
+
+/* Kommentare unterwegs */
+#quip {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 88%;
+  text-align: center;
+  padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  font-size: calc(var(--u) * 4.6);
+  line-height: 1.7;
+  color: #fff;
+  background: #000;
+  border: calc(var(--u) * 1) solid #fff;
+  pointer-events: none;
+}
+#quip[hidden] { display: none; }
+
+/* Bestenliste, Namensfeld, Menü/Game-Over-Ansicht */
+#overlay[data-view='over'] .menu-only,
+#overlay[data-view='menu'] .over-only { display: none; }
+
+#nameInput {
+  font: inherit;
+  font-size: calc(var(--u) * 5);
+  width: 70%;
+  padding: calc(var(--u) * 2);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--yellow);
+  background: transparent;
+  border: calc(var(--u) * 1) solid #9b8fd1;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#nameInput::placeholder { color: #6a5f9c; }
+
+#scores {
+  font: inherit;
+  font-size: calc(var(--u) * 3.4);
+  line-height: 1.8;
+  text-align: left;
+  color: #cfc8f3;
+  white-space: pre;
+}
+#scores:empty { display: none; }
+.calm #scores { color: #fff; font-size: calc(var(--u) * 3.8); }
+.calm #nameInput { color: #ffe14d; border-color: #fff; }

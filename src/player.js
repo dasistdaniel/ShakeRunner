@@ -11,7 +11,10 @@ export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
 export const STAGE_AT = [3, 10, 20, 25];
 export const BIKE_AT = 75; // Stufe 6: Midlife-Crisis, Motorrad (nach Stufe 5)
 const STAGE_DECAY = [1, 0.6, 0.5, 0.4, 0.4, 0.4, 0.3]; // Energie-Abbau je Stufe
-const STAGE_SPEED = [1, 1, 1, 1, 1, 1.6, 2.2];         // Stufe 5 (blaue Pille): rennt selbst, deutlich schneller
+
+export const KEVIN_SPEED = 105;  // Kevin verfolgt den Läufer mit konstantem Tempo (px/s)
+export const KEVIN_DELAY = 1.6;  // Sekunden Schockstarre nach der Pille
+const INVULN_AFTER_HIT = 1.2;    // Sekunden Unverwundbarkeit nach zerstörtem Fahrzeug
 
 // speedK: px/s je Energiepunkt, d0/d1: Energie-Abbau (konstant + proportional), gain: Schub je Schütteln,
 // exhaust: Sekunden ohne Energie bis "außer Atem", e0: Start-Energie
@@ -26,21 +29,33 @@ export class Player {
   setProfile(name) { this.prof = PROFILES[name] || PROFILES.normal; }
 
   reset() {
-    this.chairX = 0;   // Welt-X, wo Rollstuhl + Zivi stehen bleiben (Stufe 5)
-    this.stage = 0; // Rentner-Upgrades: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi, 5 blaue Pille, 6 Motorrad
-    this.e = this.prof.e0;          // Tempo-Energie 0..100
-    this.y = 0;           // Höhe über Boden (negativ = im Loch)
+    // Rentner-Story: 0 nichts, 1 Rollator, 2 Hüfte, 3 Rollstuhl, 4 Zivi, 5 blaue Pille, 6 Motorrad
+    this.stage = 0;
+    this.vehicle = null;   // null | 'rollator' | 'chair' | 'bike': jedes Fahrzeug fängt einen Treffer ab
+    this.invuln = 0;       // Restzeit Unverwundbarkeit
+    this.wreck = null;     // { kind, x }: zerstörtes Fahrzeug bleibt in der Welt liegen
+    this.kevin = null;     // { x, hasChair, delay }: ab Stufe 5 verfolgt Kevin den Läufer
+    this.e = this.prof.e0; // Tempo-Energie 0..100
+    this.y = 0;            // Höhe über Boden (negativ = im Loch)
     this.vy = 0;
-    this.dist = 0;        // zurückgelegte Weltstrecke
+    this.dist = 0;         // zurückgelegte Weltstrecke
     this.exhaust = 0;
-    this.pit = false;     // von World gesetzt: Füße über Loch
-    this.dead = null;     // null | 'fall' | 'breath' | 'crash'
+    this.pit = false;      // von World gesetzt: Füße über Loch
+    this.dead = null;      // null | 'fall' | 'breath' | 'crash' | 'kevin'
     this.anim = 0;
     this.landed = false;
     this.jumped = false;
   }
 
-  get speed() { return this.e * this.prof.speedK * STAGE_SPEED[this.stage]; }
+  get speedFactor() { return this.vehicle === 'bike' ? 2.2 : this.stage >= 5 ? 1.6 : 1; }
+
+  get speed() { return this.e * this.prof.speedK * this.speedFactor; }
+
+  // Abstand zwischen Kevins Front und dem Läufer (px); Infinity ohne Verfolger
+  get kevinGap() {
+    const k = this.kevin;
+    return k ? (this.dist + PX + 1) - (k.x + (k.hasChair ? 9 : -3)) : Infinity;
+  }
 
   push(strength) { this.e = Math.min(100, this.e + this.prof.gain * strength); }
 
@@ -52,11 +67,30 @@ export class Player {
     }
   }
 
+  // Treffer abgefangen: Fahrzeug geht kaputt und bleibt als Wrack liegen
+  breakVehicle() {
+    const kind = this.vehicle;
+    this.wreck = { kind, x: this.dist + PX - 1 };
+    this.vehicle = null;
+    this.invuln = INVULN_AFTER_HIT;
+    return kind;
+  }
+
   update(dt) {
+    this.invuln = Math.max(0, this.invuln - dt);
     this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * STAGE_DECAY[this.stage] * dt);
-    if (this.stage === 4) this.e = Math.max(this.e, 25); // Zivi schiebt: nie ganz stehen bleiben
+    if (this.vehicle === 'chair' && this.stage === 4) this.e = Math.max(this.e, 25); // Zivi schiebt: nie ganz stehen bleiben
     this.dist += this.speed * dt;
     this.anim += this.speed * dt * 0.1;
+
+    const k = this.kevin;
+    if (k) {
+      if (k.delay > 0) k.delay -= dt;
+      else {
+        k.x += KEVIN_SPEED * dt;
+        if (this.kevinGap <= 0 && !this.dead) this.dead = 'kevin';
+      }
+    }
 
     if (this.y !== 0 || this.vy !== 0 || this.pit) {
       const wasAir = this.y > 0;

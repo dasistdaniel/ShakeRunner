@@ -23,7 +23,7 @@ export function createInput(canvas) {
   // ---- Tastatur: abwechselnd links/rechts = volle Kraft, gleiche Taste = halbe ----
   let lastKeyDir = 0;
   addEventListener('keydown', (e) => {
-    if (e.repeat) return;
+    if (e.repeat || e.target.tagName === 'INPUT') return;
     const left = e.code === 'ArrowLeft' || e.code === 'KeyA';
     const right = e.code === 'ArrowRight' || e.code === 'KeyD';
     if (left || right) {

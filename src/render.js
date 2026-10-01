@@ -1,4 +1,5 @@
 import { PX, GROUND, PH } from './player.js';
+import { OBSTACLES, OBSTACLE_PAL } from './sprites.js';
 
 export const W = 180;
 export const H = 320;
@@ -99,7 +100,7 @@ export function createRenderer(canvas) {
     if (zivi) ctx.drawImage(zivi, x - 11, by - PH);
   }
 
-  // Motorrad mit Fahrer: Heck bei x-4, Sitz bei x+3, Lenker bei x+13
+  // Motorrad bei x (Heck x-4, Sitz x+3, Lenker x+13); frame = Fahrer (oder null = leer)
   function drawBike(x, by, frame, anim) {
     const spoke = Math.floor(anim * 2) % 4; // drehende "Speiche" an der Nabe
     const sx = [0, 2, 0, -2][spoke], sy = [-2, 0, 2, 0][spoke];
@@ -115,6 +116,7 @@ export function createRenderer(canvas) {
     ctx.fillRect(x + 12, by - 13, 3, 1);    // Griff
     ctx.fillStyle = '#aaa';
     ctx.fillRect(x + 1, by - 10, 6, 1);     // Sitz
+    if (!frame) return;
     ctx.drawImage(frame, 0, 0, 8, 8, x + 3, by - 17, 8, 8); // Fahrer
     ctx.fillStyle = '#00e5ff';
     ctx.fillRect(x + 5, by - 10, 6, 2);     // Oberschenkel
@@ -123,34 +125,60 @@ export function createRenderer(canvas) {
     ctx.fillRect(x + 8, by - 13, 5, 1);     // Arm zum Lenker
   }
 
-  // Figur je nach Stufe: 0 Rentner, 1 +Rollator, 2 neue Hüfte, 3 Rollstuhl, 4 Rollstuhl + Zivi,
-  // 5 blaue Pille: steht auf, rennt selbst, Rollstuhl + Zivi bleiben zurück
+  // zerstörtes Fahrzeug, das in der Welt liegen bleibt
+  function drawWreck(kind, x) {
+    if (kind === 'chair') drawChair(x, GROUND, null, null);
+    else if (kind === 'rollator') ctx.drawImage(rollator, x, GROUND - 6);
+    else if (kind === 'bike') drawBike(x - 3, GROUND, null, 0);
+  }
+
+  // Kevin ab Stufe 5: schiebt (leeren) Rollstuhl oder rennt allein hinterher; außerhalb des Bildes: Warnung am Rand
+  function drawKevin(player, time, scroll) {
+    const k = player.kevin;
+    const kx = Math.round(k.x - Math.floor(scroll));
+    const stunned = k.delay > 0;
+    const zf = stunned || Math.floor(time * 8) % 2 ? ziviSprites.runB : ziviSprites.runA;
+    if (kx + 9 >= 0) {
+      if (k.hasChair) drawChair(kx, GROUND, null, zf);
+      else ctx.drawImage(zf, kx - 11, GROUND - PH);
+    } else if (player.kevinGap < 140) {
+      ctx.drawImage(ziviSprites.runA, 1, GROUND - PH);
+      if (player.kevinGap > 60 || Math.floor(time * 8) % 2) {
+        ctx.fillStyle = '#ff4040';
+        ctx.fillRect(4, GROUND - 28, 2, 7);
+        ctx.fillRect(4, GROUND - 19, 2, 2);
+      }
+    }
+  }
+
+  // Figur je nach Fahrzeug/Stufe (siehe Player): Rollator, Rollstuhl (+Kevin), Motorrad, sonst zu Fuß
   function drawCharacter(player, time, scroll) {
     const y = Math.round(player.y);
     const by = GROUND - y;
     const air = player.y !== 0;
     const pick = (set) => (air ? set.jump : (Math.floor(player.anim) % 2 ? set.runA : set.runB));
     const frame = pick(calmSprites);
-    const st = player.stage;
+    const d = Math.floor(scroll);
 
-    if (st === 5) {
-      const cx = Math.round(player.chairX - Math.floor(scroll));
-      if (cx > -26) drawChair(cx, GROUND, null, ziviSprites.runB);
+    if (player.wreck) {
+      const wx = Math.round(player.wreck.x - d);
+      if (wx > -30) drawWreck(player.wreck.kind, wx);
     }
-    if (st === 6) {
+    if (player.kevin) drawKevin(player, time, scroll);
+    if (player.invuln > 0 && Math.floor(time * 12) % 2) return; // blinkt nach zerstörtem Fahrzeug
+
+    if (player.vehicle === 'bike') {
       drawBike(PX - 3, by, frame, player.anim);
-      return;
-    }
-    if (st === 3 || st === 4) {
-      drawChair(PX, by, frame, st === 4 ? pick(ziviSprites) : null);
-      return;
-    }
-
-    ctx.drawImage(frame, PX, by - PH);
-    if (st === 1) ctx.drawImage(rollator, PX + 4, by - 6);
-    if (st === 2) { // neue Hüfte: glitzert
-      ctx.fillStyle = Math.floor(time * 6) % 2 ? '#ffffff' : '#00e5ff';
-      ctx.fillRect(PX + 2, by - 5, 2, 2);
+    } else if (player.vehicle === 'chair') {
+      drawChair(PX, by, frame, player.stage === 4 ? pick(ziviSprites) : null);
+    } else {
+      ctx.drawImage(frame, PX, by - PH);
+      if (player.vehicle === 'rollator') ctx.drawImage(rollator, PX + 4, by - 6);
+      if (player.stage === 2) { // neue Hüfte: glitzert
+        ctx.fillStyle = Math.floor(time * 6) % 2 ? '#ffffff' : '#00e5ff';
+        ctx.fillRect(PX + 2, by - 5, 2, 2);
+      }
+      if (player.stage === 4) ctx.drawImage(pick(ziviSprites), PX - 11, by - PH); // Kevin läuft hinterher
     }
   }
 
@@ -177,6 +205,8 @@ export function createRenderer(canvas) {
         ctx.fillStyle = '#ffe14d';
         ctx.fillRect(x, GROUND, 2, H - GROUND);
         ctx.fillRect(x + o.w - 2, GROUND, 2, H - GROUND);
+      } else if (o.kind) {
+        ctx.drawImage(obstacleSprites[o.kind], x, GROUND - o.h);
       } else {
         ctx.fillStyle = '#fff';
         ctx.fillRect(x - 2, GROUND - o.h - 2, o.w + 4, o.h + 2);
@@ -198,6 +228,7 @@ export function createRenderer(canvas) {
   const rollator = makeSprite(ROLLATOR, ROLLATOR_PAL);
   const wheel = makeSprite(WHEEL, { w: '#ffffff' });
   const pill = makeSprite(PILL, PILL_PAL);
+  const obstacleSprites = Object.fromEntries(Object.entries(OBSTACLES).map(([k, rows]) => [k, makeSprite(rows, OBSTACLE_PAL)]));
   const ziviSprites = {
     runA: makeSprite(FRAMES.runA, ZIVI_PAL), runB: makeSprite(FRAMES.runB, ZIVI_PAL), jump: makeSprite(FRAMES.jump, ZIVI_PAL),
   };

@@ -1,4 +1,5 @@
 import { PX, JUMP_AIR_TIME } from './player.js';
+import { KINDS } from './sprites.js';
 
 // Vorlauf für Reaktions- und Sensor-Latenz (Sekunden)
 const CUE_LEAD = 0.08;
@@ -14,6 +15,7 @@ export class World {
     this.pillDue = false;    // Pille soll erscheinen
     this.pillNew = false;    // Flag: Pille wurde eben gespawnt
     this.pillCaught = false; // Flag: Pille wurde gefangen
+    this.hitObs = null;      // zuletzt getroffenes Hindernis
   }
 
   spawn(speed) {
@@ -25,7 +27,9 @@ export class World {
         this.nextX = x + 10 + Math.max(150, Math.max(speed, 50) * 2.2 + 60);
         return;
       }
-      const o = { type: 'box', x, w: Math.random() < 0.5 ? 10 : 14, h: Math.random() < 0.5 ? 10 : 12 };
+      // Rentner-Hindernisse (Sprites): Bus ist selten, der Rest gleich verteilt
+      const k = KINDS[Math.random() < 0.12 ? KINDS.length - 1 : Math.floor(Math.random() * (KINDS.length - 1))];
+      const o = { type: 'box', kind: k.kind, x, w: k.w, h: k.h };
       this.obs.push(o);
       this.nextX = x + o.w + Math.max(150, Math.max(speed, 50) * (1.8 + Math.random() * 0.8) + 60);
       return;
@@ -67,7 +71,8 @@ export class World {
       if (!o.counted && o.x + o.w < l) { o.counted = true; this.passed++; }
       if (o.type === 'pit') {
         if (l > o.x && r < o.x + o.w) player.pit = true;
-      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h) {
+      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h && player.invuln <= 0) {
+        this.hitObs = o;
         return 'crash';
       }
     }
