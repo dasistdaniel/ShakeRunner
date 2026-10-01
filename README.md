@@ -22,7 +22,7 @@ Menü-Knopf *RENTNER-MODUS* oder Link mit `?rentner` (z. B. `https://dasistdanie
 Zum Vorführen: `?rentner&start=N` startet mit N geschafften Hürden (z. B. `?rentner&start=100`).
 
 ## Bestenliste & Teilen
-Name im Menü eintragen. Je Modus Top 5 lokal im Browser. Nach dem Game Over: *TEILEN* (Teilen-Dialog des Handys, sonst Link in die Zwischenablage).
+Name im Menü eintragen. Je Modus Top 5 lokal im Browser. Nach dem Game Over: *TEILEN* erzeugt eine Score-Karte als Bild (Name, Meter, Hürden, Stufe, Platz) und öffnet den Teilen-Dialog des Handys; am PC wird das Bild gespeichert.
 
 ## Starten
 ```bash

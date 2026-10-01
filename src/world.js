@@ -49,10 +49,17 @@ export class World {
         return;
       }
       // Rentner-Hindernisse (Sprites): Bus ist selten, der Rest gleich verteilt
-      const k = KINDS[Math.random() < 0.12 ? KINDS.length - 1 : Math.floor(Math.random() * (KINDS.length - 1))];
-      const o = { type: 'box', kind: k.kind, x, w: k.w, h: k.h };
-      this.obs.push(o);
-      this.nextX = x + o.w + Math.max(150, Math.max(speed, 50) * (1.8 + Math.random() * 0.8) + 60);
+      const small = KINDS.slice(0, -1); // ohne Bus
+      const k = Math.random() < 0.12 ? KINDS[KINDS.length - 1] : small[Math.floor(Math.random() * small.length)];
+      this.obs.push({ type: 'box', kind: k.kind, x, w: k.w, h: k.h });
+      let end = x + k.w;
+      if (speed >= 90 && k.w <= 14 && Math.random() < 0.18) { // Doppelhürde: dicht hintereinander, zählt als eine
+        const k2 = small[Math.floor(Math.random() * small.length)];
+        const x2 = end + 4 + Math.floor(Math.random() * 5);
+        this.obs.push({ type: 'box', kind: k2.kind, x: x2, w: k2.w, h: k2.h, counted: true, cued: true });
+        end = x2 + k2.w;
+      }
+      this.nextX = end + Math.max(150, Math.max(speed, 50) * (1.8 + Math.random() * 0.8) + 60);
       return;
     }
     const diff = Math.min(1, x / 5000);
@@ -67,10 +74,20 @@ export class World {
     } else {
       o = { type: 'box', x, w: 10, h: 22 };
     }
+    if (o.type === 'box') { // leichter Zufall: Hindernisse sind nicht alle gleich groß
+      o.h = Math.max(8, o.h + Math.floor(Math.random() * 5) - 2);
+      o.w += Math.floor(Math.random() * 5);
+    }
     this.obs.push(o);
+    let end = x + o.w;
+    if (o.type === 'box' && o.w <= 14 && speed >= 100 && Math.random() < 0.15) { // Doppelhürde, zählt als eine
+      const x2 = end + 4 + Math.floor(Math.random() * 5);
+      this.obs.push({ type: 'box', x: x2, w: 10, h: 10, counted: true, cued: true });
+      end = x2 + 10;
+    }
     // Lücke wächst mit Tempo, damit zwischen zwei Sprüngen immer Zeit zum Landen bleibt
     const gap = Math.max(130, Math.max(speed, 80) * (1.05 - diff * 0.2 + Math.random() * 0.55) + 40);
-    this.nextX = x + o.w + gap;
+    this.nextX = end + gap;
   }
 
   // Gibt 'crash' bei Kollision zurück, setzt player.pit.

@@ -4,8 +4,8 @@ import { OBSTACLES, OBSTACLE_PAL } from './sprites.js';
 export const W = 180;
 export const H = 320;
 
-const PAL = { b: '#ff2e88', s: '#ffcc99', k: '#1a0b33', j: '#00e5ff', p: '#5b3cff', w: '#ffffff' };
-const CALM_PAL = { b: '#ffe14d', s: '#ffffff', k: '#000000', j: '#ffffff', p: '#00e5ff', w: '#ffe14d' };
+export const PAL = { b: '#ff2e88', s: '#ffcc99', k: '#1a0b33', j: '#00e5ff', p: '#5b3cff', w: '#ffffff' };
+export const CALM_PAL = { b: '#ffe14d', s: '#ffffff', k: '#000000', j: '#ffffff', p: '#00e5ff', w: '#ffe14d' };
 const ROLLATOR = ['rrrrrrrrr', '.r.....r.', '.r.....r.', '.r.....r.', '.w.....w.', 'www...www'];
 const ROLLATOR_PAL = { r: '#ff4040', w: '#ffffff' };
 const WHEEL = [
@@ -14,13 +14,13 @@ const WHEEL = [
 const ZIVI_PAL = { b: '#39ff88', s: '#ffffff', k: '#000000', j: '#39ff88', p: '#39ff88', w: '#ffffff' };
 const PILL = ['.wwwwwwww.', 'wBBBBLLLLw', 'wBBBBLLLLw', 'wBBBBLLLLw', 'wBBBBLLLLw', '.wwwwwwww.'];
 const PILL_PAL = { w: '#ffffff', B: '#1f4fff', L: '#8fb8ff' };
-const FRAMES = {
+export const FRAMES = {
   runA: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', 'jj.jj.jj', '..pppp..', '.pp..pp.', 'pp....pp', 'ww....ww'],
   runB: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', '.j.jj.j.', '..pppp..', '..pppp..', '..pp.pp.', '..ww.ww.'],
   jump: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', 'jjjjjjjj', 'j.jjjj.j', '..jjjj..', '..pppp..', '.pp..pp.', '.pp..pp.', '.ww..ww.'],
 };
 
-function makeSprite(rows, pal = PAL) {
+export function makeSprite(rows, pal = PAL) {
   const c = document.createElement('canvas');
   c.width = rows[0].length;
   c.height = rows.length;

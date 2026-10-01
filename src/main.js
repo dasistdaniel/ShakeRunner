@@ -4,6 +4,7 @@ import { World } from './world.js';
 import { GameAudio } from './audio.js';
 import { createRenderer } from './render.js';
 import { createStory, ZIVI_NAME } from './story.js';
+import { makeScoreCard } from './card.js';
 import { loadBest, saveBest, loadMode, saveMode, loadScores, addScore, loadName, saveName } from './storage.js';
 
 const STEP = 1 / 60;
@@ -167,13 +168,46 @@ modeBtn.addEventListener('click', () => {
   modeBtn.blur();
 });
 
+function downloadBlob(blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'shakerunner-score.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// Teilen: Score-Karte als Bild (Teilen-Dialog des Handys), sonst Download, sonst Text/Link
 shareBtn.addEventListener('click', async () => {
   const url = location.origin + location.pathname + (rentner ? '?rentner' : '');
   const text = `Ich hab im ${rentner ? 'Rentner-Runner' : 'ShakeRunner'} ${player.finalScore} M geschafft! Schaffst du mehr?`;
+  shareBtn.textContent = '...';
+  try {
+    const blob = await makeScoreCard({
+      rentner, name: cleanName(), score: player.finalScore, rank: player.rank,
+      hurdles: world.passed, stage: player.stage, url,
+    });
+    const file = new File([blob], 'shakerunner-score.png', { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'ShakeRunner', text: `${text} ${url}` });
+      shareBtn.textContent = 'TEILEN';
+      return;
+    }
+    downloadBlob(blob);
+    shareBtn.textContent = 'GESPEICHERT!';
+    setTimeout(() => { shareBtn.textContent = 'TEILEN'; }, 1800);
+    shareBtn.blur();
+    return;
+  } catch (e) {
+    shareBtn.textContent = 'TEILEN';
+    if (e.name === 'AbortError') return; // Teilen-Dialog abgebrochen
+  }
+  // Fallback ohne Bild: Text + Link
   try {
     if (navigator.share) { await navigator.share({ title: 'ShakeRunner', text, url }); return; }
   } catch (e) {
-    if (e.name === 'AbortError') return; // Teilen-Dialog abgebrochen
+    if (e.name === 'AbortError') return;
   }
   try {
     await navigator.clipboard.writeText(`${text} ${url}`);
