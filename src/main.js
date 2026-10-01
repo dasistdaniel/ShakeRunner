@@ -34,6 +34,7 @@ let idleScroll = 0;
 let overAt = 0;
 let time = 0;
 let wake = null;
+let cueOn = true; // Absprung-Hinweiston (Taste M schaltet um)
 
 // ---- Layout: 180x320 skaliert, bevorzugt ganzzahlig ----
 function layout() {
@@ -116,6 +117,7 @@ input.onJump = (src) => {
   }
 };
 startBtn.addEventListener('click', start);
+addEventListener('keydown', (e) => { if (e.code === 'KeyM' && !e.repeat) cueOn = !cueOn; });
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) audio.suspend();
@@ -129,6 +131,7 @@ function update(dt) {
     player.update(dt);
     const hit = world.update(player);
     if (hit) player.dead = player.dead || hit;
+    else if (cueOn && world.cue(player)) audio.cueSfx();
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);
     $('score').textContent = `${Math.floor(player.dist / 10)} M`;
@@ -170,6 +173,6 @@ if (location.search.includes('debug')) {
   }, 100);
 }
 
-window.__sr ={ player, world, get state() { return state; } }; // Debug/Tests
+window.__sr = { player, world, audio, get state() { return state; } }; // Debug/Tests
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

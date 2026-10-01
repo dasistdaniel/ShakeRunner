@@ -208,6 +208,24 @@ export class GameAudio {
     o.stop(t + 0.16);
   }
 
+  // Hinweiston: "jetzt springen"
+  cueSfx() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(1320, t);
+    o.frequency.setValueAtTime(1760, t + 0.04);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + 0.11);
+  }
+
   crashSfx() {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;

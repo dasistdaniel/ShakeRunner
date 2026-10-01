@@ -5,6 +5,7 @@ export const PH = 12;
 
 const GRAVITY = 640;
 const JUMP_V = 215;
+export const JUMP_AIR_TIME = (2 * JUMP_V) / GRAVITY;
 const MAX_EXHAUST = 2.5;    // Sekunden ohne Energie bis "außer Atem"
 
 export class Player {

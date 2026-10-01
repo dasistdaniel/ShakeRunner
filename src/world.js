@@ -1,4 +1,7 @@
-import { PX } from './player.js';
+import { PX, JUMP_AIR_TIME } from './player.js';
+
+// Vorlauf für Reaktions- und Sensor-Latenz (Sekunden)
+const CUE_LEAD = 0.08;
 
 export class World {
   constructor() { this.reset(); }
@@ -45,5 +48,21 @@ export class World {
       }
     }
     return null;
+  }
+
+  // true, sobald der Absprung-Zeitpunkt für das nächste Hindernis erreicht ist (einmal pro Hindernis).
+  // Optimal: Bogenmitte (halbe Flugzeit) liegt über der Hindernismitte.
+  cue(player) {
+    const speed = player.speed;
+    if (speed < 20) return false;
+    const center = player.dist + PX + 4;
+    for (const o of this.obs) {
+      if (o.cued) continue;
+      const ahead = o.x + o.w / 2 - center;
+      if (ahead < 0) { o.cued = true; continue; }
+      if (ahead <= speed * (JUMP_AIR_TIME / 2 + CUE_LEAD)) { o.cued = true; return true; }
+      break; // Hindernisse sind nach x sortiert
+    }
+    return false;
   }
 }
