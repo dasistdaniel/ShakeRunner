@@ -18,7 +18,8 @@ const REASONS = {
     breath: 'NICKERCHEN GEMACHT?',
   },
 };
-const UPGRADES = ['UPGRADE: ROLLATOR!', 'NEUE HÜFTE! ROLLATOR WEG!', 'UPGRADE: ROLLSTUHL!', 'ZIVI SCHIEBT! GUTE FAHRT!'];
+const ZIVI_NAME = 'KEVIN';
+const UPGRADES = ['UPGRADE: ROLLATOR!', 'NEUE HÜFTE! ROLLATOR WEG!', 'UPGRADE: ROLLSTUHL!', `ZIVI ${ZIVI_NAME} SCHIEBT!<br>GUTE FAHRT!`];
 const HINTS = {
   normal: 'HANDY SCHÜTTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN',
   rentner: 'GANZ GEMÜTLICH SCHÜTTELN<br>SANFT NACH OBEN = SPRINGEN',
@@ -36,7 +37,7 @@ const toast = $('toast');
 let toastTimer = null;
 
 function showToast(text) {
-  toast.textContent = text;
+  toast.innerHTML = text;
   toast.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
@@ -149,6 +150,7 @@ function gameOver(reason) {
   const isBest = score > best;
   if (isBest) { best = score; saveBest(best, modeName()); }
   player.reasonText = REASONS[modeName()][reason];
+  if (player.stage >= 4) player.reasonText += `<br><br>${ZIVI_NAME}:<br>"WAR NICHT MEINE SCHULD!"`;
   player.finalScore = score;
   player.isBest = isBest;
 }
