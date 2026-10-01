@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07030f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ShakeRunner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <div id="wrap">
+    <canvas id="game" width="180" height="320"></canvas>
+    <div id="hud" hidden><span id="score">0 M</span><span id="best">HI 0</span></div>
+    <div id="overlay">
+      <h1>SHAKE<br>RUNNER</h1>
+      <p id="msg"></p>
+      <button id="startBtn">START</button>
+      <p class="hint touch-hint">HANDY SCH&Uuml;TTELN = RENNEN<br>RUCK NACH OBEN = SPRINGEN</p>
+      <p class="hint key-hint">PC: &larr; &rarr; ODER A D = RENNEN<br>LEERTASTE = SPRINGEN</p>
+    </div>
+  </div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

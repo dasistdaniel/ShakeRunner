@@ -1,0 +1,98 @@
+:root { --bg: #07030f; --pink: #ff2e88; --cyan: #00e5ff; --yellow: #ffe14d; --u: 2px; }
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  color: #fff;
+  font-family: 'Press Start 2P', ui-monospace, Consolas, monospace;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+#stage { position: fixed; inset: 0; display: grid; place-items: center; }
+
+#wrap { position: relative; width: 360px; height: 640px; overflow: hidden; }
+
+#wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(rgba(0, 0, 0, 0.16) 0, rgba(0, 0, 0, 0.16) calc(var(--u) * 0.5), transparent calc(var(--u) * 0.5), transparent var(--u));
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#hud {
+  position: absolute;
+  top: calc(var(--u) * 5);
+  left: calc(var(--u) * 6);
+  right: calc(var(--u) * 6);
+  display: flex;
+  justify-content: space-between;
+  font-size: calc(var(--u) * 6);
+  text-shadow: calc(var(--u) * 0.7) calc(var(--u) * 0.7) 0 #000;
+  pointer-events: none;
+}
+#hud[hidden] { display: none; }
+#best { color: var(--yellow); }
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 9);
+  background: rgba(7, 3, 15, 0.84);
+  text-align: center;
+  padding: calc(var(--u) * 8);
+}
+#overlay[hidden] { display: none; }
+
+h1 {
+  font-size: calc(var(--u) * 15);
+  line-height: 1.15;
+  color: var(--cyan);
+  text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--pink), calc(var(--u) * 2) calc(var(--u) * 2) 0 #000;
+}
+
+#msg {
+  font-size: calc(var(--u) * 5);
+  line-height: 1.9;
+  color: var(--yellow);
+  min-height: calc(var(--u) * 10);
+}
+
+button {
+  font: inherit;
+  font-size: calc(var(--u) * 8);
+  padding: calc(var(--u) * 5) calc(var(--u) * 10);
+  color: var(--bg);
+  background: var(--yellow);
+  border: calc(var(--u) * 1.5) solid #fff;
+  box-shadow: calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--pink);
+  cursor: pointer;
+  animation: blink 0.9s steps(2) infinite;
+}
+button:active { transform: translate(calc(var(--u) * 1), calc(var(--u) * 1)); box-shadow: none; }
+@keyframes blink { 50% { background: #fff; } }
+
+.hint { font-size: calc(var(--u) * 3.6); line-height: 2; color: #9b8fd1; }
