@@ -160,6 +160,16 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.__sr = { player, world, get state() { return state; } }; // Debug/Tests
+if (location.search.includes('debug')) {
+  const dbg = document.createElement('pre');
+  dbg.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9;font:11px monospace;color:#0f0;background:#000a;padding:4px;pointer-events:none';
+  document.body.appendChild(dbg);
+  setInterval(() => {
+    dbg.textContent = `events ${input.events}\nmotion ${input.motionActive}\nx ${input.lastX.toFixed(1)} up ${input.lastUp.toFixed(1)}\n` +
+      `DME ${typeof DeviceMotionEvent} LAS ${'LinearAccelerationSensor' in window}\nerr ${input.sensorError}\nsecure ${isSecureContext}`;
+  }, 100);
+}
+
+window.__sr ={ player, world, get state() { return state; } }; // Debug/Tests
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

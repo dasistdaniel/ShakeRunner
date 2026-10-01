@@ -9,6 +9,10 @@ const JUMP_GAP_MS = 400;
 export function createInput(canvas) {
   const api = {
     motionActive: false,
+    events: 0,
+    lastX: 0,
+    lastUp: 0,
+    sensorError: '',
     onPush: () => {},
     onJump: () => {},
     enableMotion,
@@ -53,10 +57,16 @@ export function createInput(canvas) {
     } else {
       return;
     }
-    api.motionActive = true;
+    process(x, y, y * upSign);
+  }
 
+  // x/y: lineare Beschleunigung, up: Beschleunigung nach oben (vorzeichenrichtig)
+  function process(x, y, up) {
+    api.motionActive = true;
+    api.events++;
+    api.lastX = x;
+    api.lastUp = up;
     const now = performance.now();
-    const up = y * upSign;
 
     if (up > JUMP_THR && up > 1.4 * Math.abs(x) && now - lastJump > JUMP_GAP_MS) {
       lastJump = now;
@@ -75,8 +85,26 @@ export function createInput(canvas) {
     }
   }
 
+  // Generic Sensor API (Chrome/Android): Fallback, falls devicemotion keine Daten liefert.
+  let sensorStarted = false;
+  async function startSensorApi() {
+    if (sensorStarted || !('LinearAccelerationSensor' in window)) return;
+    sensorStarted = true;
+    try {
+      const s = new LinearAccelerationSensor({ frequency: 60 });
+      s.addEventListener('reading', () => {
+        if (s.x != null && s.y != null) process(s.x, s.y, s.y);
+      });
+      s.addEventListener('error', (e) => { api.sensorError = e.error?.name || 'error'; });
+      s.start();
+    } catch (e) {
+      api.sensorError = e.name || 'error';
+    }
+  }
+
   let motionBound = false;
   async function enableMotion() {
+    startSensorApi();
     try {
       if (typeof DeviceMotionEvent === 'undefined') return false;
       // Listener immer binden: ohne Erlaubnis kommen schlicht keine Events (Touch-Fallback greift).
