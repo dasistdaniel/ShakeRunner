@@ -77,7 +77,7 @@ export class World {
       if (!o.counted && o.x + o.w < l) { o.counted = true; this.passed++; }
       if (o.type === 'pit') {
         if (l > o.x && r < o.x + o.w) player.pit = true;
-      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h && player.invuln <= 0 && !player.trip) {
+      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h && player.invuln <= 0) {
         this.hitObs = o;
         return 'crash';
       }

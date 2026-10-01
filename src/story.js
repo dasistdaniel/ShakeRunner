@@ -58,7 +58,7 @@ export function createStory({ player, world, audio, ui }) {
     audio.upgradeSfx(stage);
   }
 
-  // Rote Pille: kurz im "echten" Spiel (Neon, Techno, normales Tempo, unverwundbar)
+  // Rote Pille: kurz im "echten" Spiel (Neon, Techno, normales Tempo); ein Crash beendet den Trip vorzeitig
   function switchWorld(mode) {
     ui.glitch(0.9);
     audio.glitchSfx();
@@ -76,11 +76,12 @@ export function createStory({ player, world, audio, ui }) {
     ui.toast('WILLKOMMEN IM<br>ECHTEN SPIEL!', 3000);
   }
 
-  function endTrip() {
+  // early = Crash im Trip: man überlebt, wird aber früher in die Matrix zurückgekickt
+  function endTrip(early = false) {
     player.trip = false;
     player.setProfile('rentner');
     switchWorld('waltz');
-    ui.toast('WILLKOMMEN ZURÜCK<br>IN DER MATRIX!', 2400);
+    ui.toast(early ? 'CRASH! RAUSGEKICKT!<br>ZURÜCK IN DER MATRIX!' : 'WILLKOMMEN ZURÜCK<br>IN DER MATRIX!', 2400);
     ui.toast(pick(BACK_LINES), 3200, 2600);
   }
 
@@ -122,6 +123,12 @@ export function createStory({ player, world, audio, ui }) {
 
   // true = Treffer vom Fahrzeug abgefangen (Hindernis wird zerstört), false = tödlich
   function onCrash() {
+    if (player.trip) { // Trip überlebt, aber vorzeitig beendet
+      if (world.hitObs) world.hitObs.gone = true;
+      player.invuln = 1.2;
+      endTrip(true);
+      return true;
+    }
     if (!player.vehicle) return false;
     if (world.hitObs) world.hitObs.gone = true;
     ui.toast(BREAKS[player.breakVehicle()], 2200);
