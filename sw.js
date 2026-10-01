@@ -1,5 +1,5 @@
 // Network-first, Cache als Offline-Fallback (kein veralteter Stand beim Entwickeln).
-const CACHE = 'shakerunner-v4';
+const CACHE = 'shakerunner-v5';
 const FILES = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
   'src/main.js', 'src/input.js', 'src/player.js', 'src/world.js', 'src/audio.js', 'src/render.js', 'src/storage.js'];
 

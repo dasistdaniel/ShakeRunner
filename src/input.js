@@ -1,7 +1,7 @@
 // Einheitliche Eingabe: Tastatur, Bewegungssensor, Touch-Fallback.
 // Callbacks: onPush(strength 0..2), onJump(source 'key' | 'motion' | 'touch')
 
-const SHAKE_THR = 7;      // m/s^2 lineare Beschleunigung auf der X-Achse
+const SHAKE_THR = 6;      // m/s^2 lineare Beschleunigung auf der X-Achse
 const JUMP_THR = 9;       // m/s^2 nach oben (Y-Achse)
 const PUSH_GAP_MS = 110;  // Entprellung zwischen zwei Schüttel-Impulsen
 const JUMP_GAP_MS = 400;
@@ -36,32 +36,35 @@ export function createInput(canvas) {
   });
 
   // ---- Bewegungssensor ----
-  let gX = 0, gY = 0;          // langsames Tiefpass-Filter = Schwerkraft-Schätzung
-  let upSign = 1;              // Vorzeichen von "nach oben" (Android/iOS unterschiedlich)
+  // Schwerkraft-Vektor (langsames Tiefpass-Filter, Ruhewert zeigt "nach oben").
+  // "Hoch" wird als Projektion der Beschleunigung auf diesen Vektor berechnet,
+  // dadurch ist es egal, wie schräg das Handy in der Hand liegt.
+  let gx = 0, gy = 9.8, gz = 0, gSeeded = false;
   let lastPush = 0, lastPushSign = 0, lastJump = 0;
+
+  function setGravity(x, y, z) {
+    if (x == null || y == null || z == null) return;
+    if (!gSeeded) { gx = x; gy = y; gz = z; gSeeded = true; return; }
+    gx += 0.03 * (x - gx);
+    gy += 0.03 * (y - gy);
+    gz += 0.03 * (z - gz);
+  }
 
   function onMotion(e) {
     const g = e.accelerationIncludingGravity;
     const a = e.acceleration;
-    if (g && g.x != null && g.y != null) {
-      gX += 0.02 * (g.x - gX);
-      gY += 0.02 * (g.y - gY);
-      // Handy aufrecht gehalten: Ruhewert der Y-Achse zeigt, welches Vorzeichen "hoch" hat.
-      if (Math.abs(gY) > 3) upSign = Math.sign(gY);
-    }
-    let x, y;
+    if (g) setGravity(g.x, g.y, g.z);
     if (a && a.x != null && a.y != null) {
-      x = a.x; y = a.y;
+      process(a.x, a.y, a.z ?? 0);
     } else if (g && g.x != null && g.y != null) {
-      x = g.x - gX; y = g.y - gY;
-    } else {
-      return;
+      process(g.x - gx, g.y - gy, (g.z ?? 0) - gz);
     }
-    process(x, y, y * upSign);
   }
 
-  // x/y: lineare Beschleunigung, up: Beschleunigung nach oben (vorzeichenrichtig)
-  function process(x, y, up) {
+  // x/y/z: lineare Beschleunigung (ohne Schwerkraft) im Geräte-Koordinatensystem
+  function process(x, y, z) {
+    const gn = Math.hypot(gx, gy, gz);
+    const up = gn > 5 ? (x * gx + y * gy + z * gz) / gn : y;
     api.motionActive = true;
     api.events++;
     api.lastX = x;
@@ -87,16 +90,21 @@ export function createInput(canvas) {
 
   // Generic Sensor API (Chrome/Android): Fallback, falls devicemotion keine Daten liefert.
   let sensorStarted = false;
-  async function startSensorApi() {
+  function startSensorApi() {
     if (sensorStarted || !('LinearAccelerationSensor' in window)) return;
     sensorStarted = true;
+    const onErr = (e) => { api.sensorError = e.error?.name || 'error'; };
     try {
-      const s = new LinearAccelerationSensor({ frequency: 60 });
-      s.addEventListener('reading', () => {
-        if (s.x != null && s.y != null) process(s.x, s.y, s.y);
-      });
-      s.addEventListener('error', (e) => { api.sensorError = e.error?.name || 'error'; });
-      s.start();
+      const lin = new LinearAccelerationSensor({ frequency: 60 });
+      lin.addEventListener('reading', () => { if (lin.x != null && lin.y != null) process(lin.x, lin.y, lin.z ?? 0); });
+      lin.addEventListener('error', onErr);
+      lin.start();
+      if ('Accelerometer' in window) {
+        const acc = new Accelerometer({ frequency: 30 });
+        acc.addEventListener('reading', () => setGravity(acc.x, acc.y, acc.z));
+        acc.addEventListener('error', onErr);
+        acc.start();
+      }
     } catch (e) {
       api.sensorError = e.name || 'error';
     }
