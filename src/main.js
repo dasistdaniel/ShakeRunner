@@ -31,6 +31,15 @@ const hud = $('hud');
 const msg = $('msg');
 const startBtn = $('startBtn');
 const modeBtn = $('modeBtn');
+const toast = $('toast');
+let toastTimer = null;
+
+function showToast(text) {
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
+}
 
 const player = new Player();
 const world = new World();
@@ -114,6 +123,7 @@ async function start() {
   player.reset();
   world.reset();
   overlay.hidden = true;
+  toast.hidden = true;
   hud.hidden = false;
   $('best').textContent = `HI ${best}`;
   state = 'PLAY';
@@ -176,6 +186,11 @@ function update(dt) {
     const hit = world.update(player);
     if (hit) player.dead = player.dead || hit;
     else if (cueOn && world.cue(player)) audio.cueSfx();
+    if (rentner && !player.rollator && world.passed >= 3) {
+      player.rollator = true; // Upgrade: Pixel-Rollator nach 3 geschafften Hürden
+      audio.upgradeSfx();
+      showToast('UPGRADE: ROLLATOR!');
+    }
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);
     $('score').textContent = `${Math.floor(player.dist / 10)} M`;

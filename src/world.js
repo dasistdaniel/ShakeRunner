@@ -9,6 +9,7 @@ export class World {
   reset() {
     this.obs = [];
     this.nextX = 300;
+    this.passed = 0; // erfolgreich passierte Hindernisse
   }
 
   spawn(speed) {
@@ -47,6 +48,7 @@ export class World {
     const r = d + PX + 7;
     player.pit = false;
     for (const o of this.obs) {
+      if (!o.counted && o.x + o.w < l) { o.counted = true; this.passed++; }
       if (o.type === 'pit') {
         if (l > o.x && r < o.x + o.w) player.pit = true;
       } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h) {

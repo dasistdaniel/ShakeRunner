@@ -117,3 +117,18 @@ button.alt {
 .calm button { animation: none; box-shadow: none; border-color: #fff; background: #ffe14d; font-size: calc(var(--u) * 9); }
 .calm button.alt { background: transparent; color: #fff; font-size: calc(var(--u) * 5); }
 .calm .hint { color: #fff; font-size: calc(var(--u) * 4.4); }
+
+#toast {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  font-size: calc(var(--u) * 6);
+  color: #000;
+  background: #ffe14d;
+  border: calc(var(--u) * 1.5) solid #fff;
+  pointer-events: none;
+}
+#toast[hidden] { display: none; }

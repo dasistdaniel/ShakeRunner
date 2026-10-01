@@ -5,6 +5,8 @@ export const H = 320;
 
 const PAL = { b: '#ff2e88', s: '#ffcc99', k: '#1a0b33', j: '#00e5ff', p: '#5b3cff', w: '#ffffff' };
 const CALM_PAL = { b: '#ffe14d', s: '#ffffff', k: '#000000', j: '#ffffff', p: '#00e5ff', w: '#ffe14d' };
+const ROLLATOR = ['rrrrrrrrr', '.r.....r.', '.r.....r.', '.r.....r.', '.w.....w.', 'www...www'];
+const ROLLATOR_PAL = { r: '#ff4040', w: '#ffffff' };
 const FRAMES = {
   runA: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', 'jj.jj.jj', '..pppp..', '.pp..pp.', 'pp....pp', 'ww....ww'],
   runB: ['..bbbb..', '.bbbbbb.', '.ssssss.', '.sksssk.', '..ssss..', '.jjjjjj.', 'jjjjjjjj', '.j.jj.j.', '..pppp..', '..pppp..', '..pp.pp.', '..ww.ww.'],
@@ -101,6 +103,7 @@ export function createRenderer(canvas) {
     if (state !== 'DEAD' || player.dead === 'fall') {
       const frame = player.y !== 0 ? calmSprites.jump : (Math.floor(player.anim) % 2 ? calmSprites.runA : calmSprites.runB);
       ctx.drawImage(frame, PX, Math.round(GROUND - PH - player.y));
+      if (player.rollator) ctx.drawImage(rollator, PX + 4, Math.round(GROUND - 6 - player.y));
     }
     if (state === 'PLAY') {
       ctx.fillStyle = '#fff';
@@ -111,6 +114,8 @@ export function createRenderer(canvas) {
       ctx.fillRect(8, 26, Math.round((W - 16) * player.e / 100), 4);
     }
   }
+
+  const rollator = makeSprite(ROLLATOR, ROLLATOR_PAL);
 
   let parts = [];
   let dustT = 0;

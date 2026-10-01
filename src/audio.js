@@ -269,6 +269,13 @@ export class GameAudio {
     o.stop(t + 0.11);
   }
 
+  // Upgrade-Jingle: aufsteigender C-Dur-Akkord
+  upgradeSfx() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [72, 76, 79, 84].forEach((m, i) => this.tone(t + i * 0.09, mtof(m), 'triangle', 0.25, 0.35));
+  }
+
   crashSfx() {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;

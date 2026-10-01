@@ -20,6 +20,7 @@ export class Player {
   setProfile(name) { this.prof = PROFILES[name] || PROFILES.normal; }
 
   reset() {
+    this.rollator = false; // Rentner-Upgrade nach 3 Hürden
     this.e = this.prof.e0;          // Tempo-Energie 0..100
     this.y = 0;           // Höhe über Boden (negativ = im Loch)
     this.vy = 0;
@@ -45,7 +46,7 @@ export class Player {
   }
 
   update(dt) {
-    this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * dt);
+    this.e = Math.max(0, this.e - (this.prof.d0 + this.prof.d1 * this.e) * (this.rollator ? 0.6 : 1) * dt);
     this.dist += this.speed * dt;
     this.anim += this.speed * dt * 0.1;
 
