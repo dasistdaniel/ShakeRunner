@@ -50,7 +50,11 @@ export class GameAudio {
     comp.ratio.value = 6;
     comp.attack.value = 0.003;
     comp.release.value = 0.15;
-    this.master.connect(comp);
+    this.deafFilter = ctx.createBiquadFilter(); // Hörgerät-Ausfall: dumpf und leise
+    this.deafFilter.type = 'lowpass';
+    this.deafFilter.frequency.value = 20000;
+    this.master.connect(this.deafFilter);
+    this.deafFilter.connect(comp);
     comp.connect(ctx.destination);
 
     this.bassBus = ctx.createGain();   // wird vom Kick "ge-sidechained"
@@ -349,6 +353,28 @@ export class GameAudio {
     const t = this.ctx.currentTime;
     this.noiseHit(t, { type: 'bandpass', f: 2500, q: 3, dur: 0.6, vol: 0.5 });
     for (let i = 0; i < 8; i++) this.tone(t + i * 0.06, 200 + Math.random() * 1800, 'square', 0.07, 0.05);
+  }
+
+  // Hörgerät-Ausfall an/aus: Ton wird leise und dumpf
+  muffle(on) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.setTargetAtTime(on ? 0.3 : 0.9, t, 0.08);
+    this.deafFilter.frequency.setTargetAtTime(on ? 450 : 20000, t, 0.08);
+  }
+
+  snoreSfx() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.tone(t, 90, 'sawtooth', 0.14, 0.6);
+    this.tone(t + 1, 80, 'sawtooth', 0.14, 0.6);
+  }
+
+  // Abspann-Fanfare
+  fanfareSfx() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [60, 64, 67, 72, 67, 72, 76].forEach((m, i) => this.tone(t + i * 0.14, mtof(m + 12), 'square', 0.12, 0.3));
   }
 
   crashSfx() {

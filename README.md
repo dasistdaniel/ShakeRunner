@@ -16,6 +16,11 @@ Menü-Knopf *RENTNER-MODUS* oder Link mit `?rentner` (z. B. `https://dasistdanie
 
 **Fahrzeuge** (Rollator, Rollstuhl, Motorrad) fangen je einen Treffer ab, dann sind sie kaputt und bleiben als Wrack liegen. Nach der blauen Pille verfolgt Kevin den Läufer (Game Over, wenn er ihn einholt). Hindernisse im Rentner-Modus: Blutdruckmessgerät, Tablettendose, Hund, Treppenlift, Kaffeefahrt-Bus. Zwischendurch gibt es Rentner-Kommentare. Nach 90 Hürden (mit Motorrad-Stufe) erscheint eine rote Pille: 10 Sekunden im "echten" Neon-Techno-Spiel (ein Crash überlebt man, wird aber früher zurück in die Matrix gekickt), dann zurück in die Matrix.
 
+## Rentner-Story (Hürden-Zähler)
+3 Rollator · 10 neue Hüfte · 20 Rollstuhl · 25 Zivi Kevin schiebt · 50 blaue Pille (Kevin jagt hinterher) · 75 Motorrad · 90 rote Pille (10 s "echtes" Spiel) · 100 Boss: Kaffeefahrt-Gruppe · 110 Kevin kommt auf dem Motorrad zurück · 120 Rente: Pensionär-Man fliegt, danach Abspann. Dazu: Parkbank (Energie, aber 2 s Mittagsschlaf) und Hörgerät-Ausfall (Ton dumpf, kein Absprung-Ping).
+
+Zum Vorführen: `?rentner&start=N` startet mit N geschafften Hürden (z. B. `?rentner&start=100`).
+
 ## Bestenliste & Teilen
 Name im Menü eintragen. Je Modus Top 5 lokal im Browser. Nach dem Game Over: *TEILEN* (Teilen-Dialog des Handys, sonst Link in die Zwischenablage).
 

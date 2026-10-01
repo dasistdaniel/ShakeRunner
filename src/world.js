@@ -1,4 +1,4 @@
-import { PX, JUMP_AIR_TIME, RED_AT } from './player.js';
+import { PX, JUMP_AIR_TIME, RED_AT, BOSS_AT } from './player.js';
 import { KINDS } from './sprites.js';
 
 // Vorlauf für Reaktions- und Sensor-Latenz (Sekunden)
@@ -17,6 +17,13 @@ export class World {
     this.pillNew = null;     // Flag: Farbe der eben gespawnten Pille
     this.pillCaught = null;  // Flag: Farbe der gefangenen Pille
     this.hitObs = null;      // zuletzt getroffenes Hindernis
+    this.bossDone = false;   // Boss besiegt/übersprungen
+    this.bossOut = false;    // Boss liegt gerade auf der Strecke
+    this.bossNew = false;    // Flag: Boss wurde eben gespawnt
+    this.bossBeaten = false; // Flag: Boss wurde eben überwunden
+    this.benchHit = false;   // Flag: Spieler hat sich auf eine Bank gesetzt
+    this.lastBenchX = -9999;
+    this.bossDue = false;
   }
 
   spawn(speed) {
@@ -27,6 +34,18 @@ export class World {
         this.pillOut = true;
         this.pillNew = this.pillDue;
         this.nextX = x + 10 + Math.max(150, Math.max(speed, 50) * 2.2 + 60);
+        return;
+      }
+      if (this.bossDue && !this.bossOut) { // Boss: Kaffeefahrt-Gruppe, nur mit gutem Sprung zu überwinden
+        this.obs.push({ type: 'box', kind: 'boss', boss: true, x, w: 40, h: 26 });
+        this.bossOut = this.bossNew = true;
+        this.nextX = x + 40 + Math.max(220, Math.max(speed, 50) * 2.4 + 80);
+        return;
+      }
+      if (this.passed >= 15 && x - this.lastBenchX > 800 && Math.random() < 0.12) { // Parkbank: Mittagsschlaf
+        this.lastBenchX = x;
+        this.obs.push({ type: 'bench', kind: 'bench', x, w: 16, h: 8, cued: true });
+        this.nextX = x + 16 + Math.max(150, Math.max(speed, 50) * 2 + 60);
         return;
       }
       // Rentner-Hindernisse (Sprites): Bus ist selten, der Rest gleich verteilt
@@ -58,6 +77,7 @@ export class World {
   update(player) {
     const d = player.dist;
     this.trip = player.trip;
+    this.bossDue = this.calm && !player.trip && player.stage === 6 && !this.bossDone && this.passed >= BOSS_AT;
     if (!this.calm || player.trip) this.pillDue = null;
     else if (player.stage === 4 && this.passed >= 50) this.pillDue = 'blue';
     else if (player.stage === 6 && !player.redTaken && this.passed >= RED_AT) this.pillDue = 'red';
@@ -74,10 +94,18 @@ export class World {
         else if (!o.counted && o.x + o.w < l) { o.counted = true; this.pillOut = false; } // verpasst: kommt wieder
         continue;
       }
-      if (!o.counted && o.x + o.w < l) { o.counted = true; this.passed++; }
+      if (o.type === 'bench') { // Bank: Energie, aber zwei Sekunden Mittagsschlaf; drüberspringen geht auch
+        if (r > o.x && l < o.x + o.w && player.y < 8 && !player.flying) { o.gone = true; this.benchHit = true; }
+        continue;
+      }
+      if (!o.counted && o.x + o.w < l) {
+        o.counted = true;
+        this.passed++;
+        if (o.boss) { this.bossDone = true; this.bossOut = false; this.bossBeaten = true; }
+      }
       if (o.type === 'pit') {
         if (l > o.x && r < o.x + o.w) player.pit = true;
-      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h && player.invuln <= 0) {
+      } else if (r - 1 > o.x && l + 1 < o.x + o.w && player.y < o.h && player.invuln <= 0 && !player.flying) {
         this.hitObs = o;
         return 'crash';
       }

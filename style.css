@@ -201,3 +201,44 @@ button.alt {
 #scores:empty { display: none; }
 .calm #scores { color: #fff; font-size: calc(var(--u) * 3.8); }
 .calm #nameInput { color: #ffe14d; border-color: #fff; }
+
+/* Mittagsschlaf auf der Bank */
+#sleep {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 6);
+  background: #000;
+  font-size: calc(var(--u) * 14);
+  color: #9fc0ff;
+  pointer-events: none;
+}
+#sleep small { font-size: calc(var(--u) * 4); color: #fff; }
+#sleep[hidden] { display: none; }
+
+/* Abspann */
+#credits {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+#credits[hidden] { display: none; }
+#creditsRoll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  text-align: center;
+  font-size: calc(var(--u) * 5);
+  line-height: 2.2;
+  color: #fff;
+  animation: roll 17s linear forwards;
+}
+#creditsRoll p { margin: 0; }
+#creditsRoll .ch { margin-top: calc(var(--u) * 10); color: #ffe14d; font-size: calc(var(--u) * 6); }
+@keyframes roll { to { transform: translateY(calc(-1 * var(--roll-dist, 1500px))); } }

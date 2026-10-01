@@ -39,6 +39,9 @@ const scoresEl = $('scores');
 const toast = $('toast');
 const shout = $('shout');
 const quip = $('quip');
+const sleepEl = $('sleep');
+const creditsEl = $('credits');
+const creditsRoll = $('creditsRoll');
 
 const player = new Player();
 const world = new World();
@@ -70,6 +73,7 @@ function timedShow(el, html, ms) {
 
 function hideBanners() {
   for (const el of [toast, shout, quip]) { clearTimeout(el._t); el.hidden = true; }
+  sleepEl.hidden = true;
   clearTimeout(shoutDelay);
   clearTimeout(toastDelay);
 }
@@ -81,6 +85,7 @@ const ui = {
     toastDelay = setTimeout(() => { if (state === 'PLAY') timedShow(toast, html, ms); }, delayMs);
   },
   glitch: (sec) => { glitchT = sec; },
+  finish: () => startCredits(),
   quip: (html) => timedShow(quip, html, 3200),
   shout: (html, delayMs) => {
     clearTimeout(shoutDelay);
@@ -93,6 +98,7 @@ const ui = {
 };
 
 const story = createStory({ player, world, audio, ui });
+const startN = parseInt(new URLSearchParams(location.search).get('start'), 10) || 0; // ?start=N: mit N Hürden starten (zum Vorführen)
 
 // ---- Layout: 180x320 skaliert, bevorzugt ganzzahlig ----
 function layout() {
@@ -152,7 +158,7 @@ applyMode();
 showOverlay(bestText(), 'START');
 
 modeBtn.addEventListener('click', () => {
-  if (state === 'PLAY' || state === 'DEAD') return;
+  if (state === 'PLAY' || state === 'DEAD' || state === 'CREDITS') return;
   rentner = !rentner;
   saveMode(modeName());
   applyMode();
@@ -181,7 +187,7 @@ shareBtn.addEventListener('click', async () => {
 
 // ---- Spielablauf ----
 async function start() {
-  if (state === 'PLAY' || state === 'DEAD') return;
+  if (state === 'PLAY' || state === 'DEAD' || state === 'CREDITS') return;
   if (state === 'OVER' && performance.now() - overAt < 600) return;
   audio.init(); // synchron in der Geste, vor dem await
   await input.enableMotion();
@@ -192,6 +198,7 @@ async function start() {
   player.reset();
   world.reset();
   story.reset();
+  if (rentner && startN) story.jumpTo(startN);
   audio.setMode(rentner ? 'waltz' : 'techno');
   glitchT = 0;
   overlay.hidden = true;
@@ -201,6 +208,62 @@ async function start() {
   state = 'PLAY';
   audio.start();
 }
+
+function recordScore() {
+  const score = Math.floor(player.dist / 10);
+  const isBest = score > best;
+  if (isBest) { best = score; saveBest(best, modeName()); }
+  const name = cleanName();
+  saveName(name);
+  player.rank = score > 0 ? addScore(modeName(), name, score) : -1;
+  player.finalScore = score;
+  player.isBest = isBest;
+}
+
+// ---- Abspann nach dem Flug von Pensionär-Man: Credits laufen, dann Ergebnisbildschirm ----
+let creditsAt = 0;
+let creditsTimer = null;
+
+function startCredits() {
+  hideBanners();
+  state = 'CREDITS';
+  creditsAt = performance.now();
+  recordScore();
+  player.reasonText = 'PENSIONÄR-MAN<br>HAT ES GESCHAFFT!';
+  const name = cleanName();
+  const lines = [
+    ['PENSIONÄR-MAN', 'ch'], ['EIN FILM VON OPA'],
+    ['HAUPTROLLE', 'ch'], [name],
+    ['ZIVI', 'ch'], [`${ZIVI_NAME} (ARBEITSLOS)`],
+    ['ROLLATOR', 'ch'], ['KAPUTT'],
+    ['HÜFTE', 'ch'], ['TITAN'],
+    ['ROLLSTUHL', 'ch'], ['TOTALSCHADEN'],
+    ['HUND', 'ch'], ['WUFFI'],
+    ['KAFFEEFAHRT-GRUPPE', 'ch'], ['5 STATISTEN'],
+    ['MUSIK', 'ch'], ['EIN WALZER'],
+    ['KEIN RENTNER KAM<br>ZU SCHADEN', 'ch'],
+    ['ENDE', 'ch'],
+  ];
+  creditsRoll.innerHTML = lines.map(([t, c]) => `<p${c ? ` class="${c}"` : ''}>${t}</p>`).join('');
+  creditsEl.hidden = false;
+  creditsRoll.style.setProperty('--roll-dist', `${creditsRoll.offsetHeight + wrap.clientHeight}px`);
+  creditsRoll.style.animation = 'none';
+  void creditsRoll.offsetWidth; // Animation neu starten
+  creditsRoll.style.animation = '';
+  creditsTimer = setTimeout(endCredits, 18000);
+}
+
+function endCredits() {
+  clearTimeout(creditsTimer);
+  if (state !== 'CREDITS') return;
+  creditsEl.hidden = true;
+  audio.stop();
+  wake?.release?.().catch(() => {});
+  wake = null;
+  showGameOver();
+}
+
+creditsEl.addEventListener('click', () => { if (performance.now() - creditsAt > 3000) endCredits(); });
 
 function gameOver(reason) {
   hideBanners();
@@ -217,17 +280,9 @@ function gameOver(reason) {
   wake?.release?.().catch(() => {});
   wake = null;
 
-  const score = Math.floor(player.dist / 10);
-  const isBest = score > best;
-  if (isBest) { best = score; saveBest(best, modeName()); }
-  const name = cleanName();
-  saveName(name);
-  player.rank = score > 0 ? addScore(modeName(), name, score) : -1;
-
+  recordScore();
   player.reasonText = REASONS[modeName()][reason];
   if (player.stage === 4) player.reasonText += `<br><br>${ZIVI_NAME}:<br>"WAR NICHT MEINE SCHULD!"`;
-  player.finalScore = score;
-  player.isBest = isBest;
 }
 
 function showGameOver() {
@@ -246,6 +301,8 @@ input.onJump = (src) => {
   if (state === 'PLAY') {
     player.jump();
     if (player.jumped) { audio.jumpSfx(); player.jumped = false; }
+  } else if (state === 'CREDITS') {
+    if (src === 'key' && performance.now() - creditsAt > 3000) endCredits();
   } else if (src === 'key') {
     start();
   }
@@ -269,12 +326,13 @@ function update(dt) {
     if (rentner) story.update(dt);
     if (hit) {
       if (!(rentner && story.onCrash())) player.dead = player.dead || hit; // Fahrzeug fängt einen Treffer ab
-    } else if (cueOn && world.cue(player)) {
+    } else if (cueOn && !player.deaf && world.cue(player)) {
       audio.cueSfx();
     }
     audio.setIntensity(player.e / 100);
     if (player.dead) gameOver(player.dead);
     $('score').textContent = `${Math.floor(player.dist / 10)} M`;
+    sleepEl.hidden = player.sleepT <= 0;
   } else if (state === 'DEAD') {
     deadT += dt;
     if (player.dead === 'fall') { player.vy -= 640 * dt; player.y += player.vy * dt; }

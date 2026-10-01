@@ -1,6 +1,10 @@
-// Rentner-Story: Upgrades nach geschafften Hürden, Fahrzeug-Treffer, Kevins Verfolgung, Zufalls-Kommentare.
-// ui: { toast(html, ms), shout(html, delayMs), quip(html) } wird von main.js geliefert.
-import { PX, STAGE_AT, BIKE_AT, KEVIN_DELAY, TRIP_SECONDS } from './player.js';
+// Rentner-Story: Upgrades nach geschafften Hürden, Fahrzeug-Treffer, Kevins Verfolgung (zweimal), Boss,
+// rote Pille (Matrix-Trip), Rente (Cape-Flug + Abspann), Mittagsschlaf, Hörgerät-Ausfall, Zufalls-Kommentare.
+// ui: { toast(html, ms, delayMs), shout(html, delayMs), quip(html), glitch(sec), finish() } wird von main.js geliefert.
+import {
+  PX, STAGE_AT, BIKE_AT, RED_AT, BOSS_AT, KEVIN2_AT, RENTE_AT,
+  KEVIN_DELAY, KEVIN2_SPEED, TRIP_SECONDS, FLY_SECONDS, SLEEP_SECONDS,
+} from './player.js';
 
 export const ZIVI_NAME = 'KEVIN';
 
@@ -46,11 +50,37 @@ const BACK_LINES = [
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const nextQuipIn = () => 12 + Math.random() * 8;
+const nextDeafIn = () => 25 + Math.random() * 15;
 
 export function createStory({ player, world, audio, ui }) {
   let quipT = nextQuipIn();
+  let deafIn = nextDeafIn();
+  let deafLeft = 0;
+  let kevinBack = false; // Kevin ist schon zurückgekehrt
 
-  function reset() { quipT = nextQuipIn(); }
+  function setDeaf(on) {
+    player.deaf = on;
+    audio.muffle(on);
+  }
+
+  function reset() {
+    quipT = nextQuipIn();
+    deafIn = nextDeafIn();
+    deafLeft = 0;
+    kevinBack = false;
+    audio.muffle(false);
+  }
+
+  // Zum Vorführen (?start=N): Spielstand so setzen, als wären N Hürden geschafft
+  function jumpTo(n) {
+    world.passed = n;
+    const stage = n >= BIKE_AT ? 6 : n >= 50 ? 5 : STAGE_AT.filter((a) => n >= a).length;
+    player.stage = stage;
+    player.vehicle = stage === 6 ? 'bike' : stage === 3 || stage === 4 ? 'chair' : stage === 1 ? 'rollator' : null;
+    player.redTaken = n > RED_AT + 5;
+    world.bossDone = n > BOSS_AT;
+    kevinBack = n > KEVIN2_AT;
+  }
 
   function enterStage(stage) {
     player.stage = stage;
@@ -85,6 +115,28 @@ export function createStory({ player, world, audio, ui }) {
     ui.toast(pick(BACK_LINES), 3200, 2600);
   }
 
+  // Kevin kehrt auf einem Motorrad zurück und jagt erneut (zweite Verfolgung, schneller)
+  function kevinReturns() {
+    kevinBack = true;
+    const head = player.vehicle === 'bike' ? 320 : 480; // ohne Motorrad mehr Vorsprung
+    player.kevin = { x: player.dist + PX - head, hasChair: false, bike: true, speed: KEVIN2_SPEED, delay: 0 };
+    audio.revSfx();
+    ui.toast(`${ZIVI_NAME} IST ZURÜCK!<br>UND ER IST SAUER!`, 3500);
+    ui.shout('DU HAST MEINEN<br>ROLLSTUHL GESTOHLEN!', 1800);
+  }
+
+  // Rente eingereicht: Pensionär-Man fliegt mit Cape über alles, danach Abspann
+  function retire() {
+    player.stage = 7;
+    player.flying = true;
+    player.flyT = FLY_SECONDS;
+    player.kevin = null;
+    audio.upgradeSfx(7);
+    audio.fanfareSfx();
+    ui.toast('RENTE EINGEREICHT!<br>PENSIONÄR-MAN!', 4000);
+    ui.shout('NEIN! WER ZAHLT<br>JETZT MEINE RENTE?!', 2200);
+  }
+
   // Wird jede Spielframe im Rentner-Modus aufgerufen
   function update(dt) {
     if (world.pillNew) {
@@ -110,8 +162,41 @@ export function createStory({ player, world, audio, ui }) {
       ui.toast('MIDLIFE CRISIS!<br>ER FINDET EIN MOTORRAD!', 4500);
     }
 
+    if (world.bossNew) {
+      world.bossNew = false;
+      ui.toast('BOSS!<br>DIE KAFFEEFAHRT-GRUPPE', 3000);
+    }
+    if (world.bossBeaten) {
+      world.bossBeaten = false;
+      ui.toast('GESCHAFFT!<br>DIE GRUPPE FÄHRT WEITER', 2600);
+    }
+    if (player.stage === 6 && !player.trip && !kevinBack && world.passed >= KEVIN2_AT) kevinReturns();
+    if (player.stage === 6 && !player.trip && world.passed >= RENTE_AT) retire();
+
+    if (world.benchHit) { // Mittagsschlaf: Energie, aber kurz weggetreten
+      world.benchHit = false;
+      player.e = Math.min(100, player.e + 40);
+      player.sleepT = SLEEP_SECONDS;
+      audio.snoreSfx();
+    }
+
     if (player.trip && (player.tripT -= dt) <= 0) endTrip();
+    if (player.flying && (player.flyT -= dt) <= 0) {
+      player.flying = false;
+      ui.finish(); // Abspann
+    }
     world.pillCaught = null;
+
+    // Hörgerät fällt kurz aus: Ton dumpf und kein Absprung-Ping
+    if (deafLeft > 0) {
+      deafLeft -= dt;
+      if (deafLeft <= 0) setDeaf(false);
+    } else if (world.passed >= 8 && !player.trip && (deafIn -= dt) <= 0) {
+      deafIn = nextDeafIn();
+      deafLeft = 4;
+      setDeaf(true);
+      ui.toast('WAS? ICH VERSTEH<br>DICH NICHT!', 3000);
+    }
 
     quipT -= dt;
     if (quipT <= 0) {
@@ -130,11 +215,14 @@ export function createStory({ player, world, audio, ui }) {
       return true;
     }
     if (!player.vehicle) return false;
-    if (world.hitObs) world.hitObs.gone = true;
+    if (world.hitObs) {
+      world.hitObs.gone = true;
+      if (world.hitObs.boss) { world.bossDone = true; world.bossOut = false; } // Boss zerlegt
+    }
     ui.toast(BREAKS[player.breakVehicle()], 2200);
     audio.crashSfx();
     return true;
   }
 
-  return { reset, update, onCrash };
+  return { reset, update, onCrash, jumpTo };
 }

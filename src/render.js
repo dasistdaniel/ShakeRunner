@@ -137,9 +137,11 @@ export function createRenderer(canvas) {
     const k = player.kevin;
     const kx = Math.round(k.x - Math.floor(scroll));
     const stunned = k.delay > 0;
+    const reach = k.bike ? 17 : 9;
     const zf = stunned || Math.floor(time * 8) % 2 ? ziviSprites.runB : ziviSprites.runA;
-    if (kx + 9 >= 0) {
-      if (k.hasChair) drawChair(kx, GROUND, null, zf);
+    if (kx + reach >= 0) {
+      if (k.bike) drawBike(kx, GROUND, zf, time * 12);
+      else if (k.hasChair) drawChair(kx, GROUND, null, zf);
       else ctx.drawImage(zf, kx - 11, GROUND - PH);
     } else if (player.kevinGap < 140) {
       ctx.drawImage(ziviSprites.runA, 1, GROUND - PH);
@@ -149,6 +151,22 @@ export function createRenderer(canvas) {
         ctx.fillRect(4, GROUND - 19, 2, 2);
       }
     }
+  }
+
+  // Pensionär-Man: fliegt mit wehendem Cape über allem
+  function drawHero(time) {
+    const hy = GROUND - 58 + Math.round(Math.sin(time * 5) * 3);
+    const flap = Math.floor(time * 10) % 2;
+    ctx.fillStyle = '#ff2e2e';
+    ctx.fillRect(PX + 1, hy + 3, 3, 6);              // Cape am Rücken
+    ctx.fillRect(PX - 4, hy + 4 + flap, 5, 4);
+    ctx.fillRect(PX - 9, hy + 5 - flap, 5, 3);
+    ctx.fillRect(PX - 13, hy + 6 + flap, 4, 2);
+    ctx.drawImage(calmSprites.jump, PX, hy);
+    ctx.fillStyle = '#ffe14d';
+    ctx.fillRect(PX + 3, hy + 6, 2, 2);              // Emblem
+    ctx.fillStyle = '#444';
+    ctx.fillRect(PX - 2, GROUND - 1, 12, 1);         // Schatten
   }
 
   // Figur je nach Fahrzeug/Stufe (siehe Player): Rollator, Rollstuhl (+Kevin), Motorrad, sonst zu Fuß
@@ -165,6 +183,7 @@ export function createRenderer(canvas) {
       if (wx > -30) drawWreck(player.wreck.kind, wx);
     }
     if (player.kevin) drawKevin(player, time, scroll);
+    if (player.flying) { drawHero(time); return; }
     if (player.invuln > 0 && Math.floor(time * 12) % 2) return; // blinkt nach zerstörtem Fahrzeug
 
     if (player.vehicle === 'bike') {
