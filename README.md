@@ -24,6 +24,9 @@ Zum Vorführen: `?rentner&start=N` startet mit N geschafften Hürden (z. B. `?re
 ## Bestenliste & Teilen
 Name im Menü eintragen. Je Modus Top 5 lokal im Browser. Nach dem Game Over: *TEILEN* erzeugt eine Score-Karte als Bild (Name, Meter, Hürden, Stufe, Platz) und öffnet den Teilen-Dialog des Handys; am PC wird das Bild gespeichert.
 
+## Social Preview
+`social-preview.png` (1280x640) wird per Open-Graph-Tags in `index.html` für Link-Vorschauen genutzt (WhatsApp, Telegram, Discord ...). Neu erzeugen: `npx serve .`, dann `/tools/social-preview.html` öffnen und das Bild speichern.
+
 ## Starten
 ```bash
 npx serve .
